@@ -24,11 +24,15 @@ def listUserAccounts_route():
     return account_subscription.listUserAccounts()
 
 
-@app.post("/createModifySubscriptionPlan")
-def createModifySubscriptionPlan_route(plan_id: Optional[int], name: str, price: float, max_streams: int):
-    account_subscription.createModifySubscriptionPlan(plan_id, name, price, max_streams)
+@app.post("/modifySubscriptionPlan")
+def modifySubscriptionPlan_route(plan_id: int, name: str, price: float, max_streams: int):
+    account_subscription.modifySubscriptionPlan(plan_id, name, price, max_streams)
     return {"ok": True}
 
+@app.post("/createSubscriptionPlan")
+def createSubscriptionPlan_route(name: str, price: float, max_streams: int):
+    account_subscription.createSubscriptionPlan(name, price, max_streams)
+    return {"ok": True}
 
 @app.get("/listSubscriptionPlans")
 def listSubscriptionPlans_route():

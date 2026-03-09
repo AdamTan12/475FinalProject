@@ -60,29 +60,35 @@ def listUserAccounts():
             return [dict(zip(columns, row)) for row in cur.fetchall()]
 
 
-def createModifySubscriptionPlan(plan_id: Optional[int], name: str, price: float, max_streams: int):
+def modifySubscriptionPlan(plan_id: int, name: str, price: float, max_streams: int):
     """
     Insert or Update SubscriptionPlans. Use plan_id for update; pass None for insert.
     """
     with get_connection() as conn:
         with conn.cursor() as cur:
-            if plan_id is None:
-                cur.execute(
-                    """
-                    INSERT INTO subscription_plans (name, price, max_streams)
-                    VALUES (%s, %s, %s)
-                    """,
-                    (name, price, max_streams),
-                )
-            else:
-                cur.execute(
-                    """
-                    UPDATE subscription_plans
-                    SET name = %s, price = %s, max_streams = %s
-                    WHERE plan_id = %s
-                    """,
-                    (name, price, max_streams, plan_id),
-                )
+            cur.execute(
+                """
+                UPDATE subscription_plans
+                SET name = %s, price = %s, max_streams = %s
+                WHERE plan_id = %s
+                """,
+                (name, price, max_streams, plan_id),
+            )
+
+def createSubscriptionPlan(name: str, price: float, max_streams: int):
+    """
+    Insert or Update SubscriptionPlans. Use plan_id for update; pass None for insert.
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO subscription_plans (name, price, max_streams)
+                VALUES (%s, %s, %s)
+                """,
+                (name, price, max_streams),
+            )
+
 
 
 def listSubscriptionPlans():
