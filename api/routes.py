@@ -2,7 +2,9 @@
 HTTP routes that delegate to service-layer APIs.
 API names match the spreadsheet/documentation.
 """
-from fastapi import FastAPI, HTTPException
+from typing import Optional
+
+from fastapi import FastAPI
 
 from services import account_subscription, device_location, streaming, reporting
 
@@ -12,7 +14,7 @@ app = FastAPI(title="Video Stream Platform API")
 # --- Account & Subscription Management ---
 
 @app.post("/createModifyUser")
-def createModifyUser_route(action: str, name: str, email: str, plan_id: int, user_id: int | None = None):
+def createModifyUser_route(action: str, name: str, email: str, plan_id: int, user_id: Optional[int] = None):
     account_subscription.createModifyUser(action, name, email, plan_id, user_id=user_id)
     return {"ok": True}
 
@@ -23,7 +25,7 @@ def listUserAccounts_route():
 
 
 @app.post("/createModifySubscriptionPlan")
-def createModifySubscriptionPlan_route(plan_id: int | None, name: str, price: float, max_streams: int):
+def createModifySubscriptionPlan_route(plan_id: Optional[int], name: str, price: float, max_streams: int):
     account_subscription.createModifySubscriptionPlan(plan_id, name, price, max_streams)
     return {"ok": True}
 
@@ -57,7 +59,7 @@ def listLocations_route(user_id: int):
 
 
 @app.post("/validateDeviceMFA")
-def validateDeviceMFA_route(device_id: int, location_id: int, user_home_location_id: int | None = None):
+def validateDeviceMFA_route(device_id: int, location_id: int, user_home_location_id: Optional[int] = None):
     ok = device_location.validateDeviceMFA(device_id, location_id, user_home_location_id)
     return {"allowed": ok}
 

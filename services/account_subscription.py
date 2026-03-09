@@ -3,6 +3,8 @@ Account & Subscription Management APIs.
 createModifyUser, listUserAccounts, createModifySubscriptionPlan, listSubscriptionPlans,
 createModifyPaymentInfo, reportMonthlyRevenue.
 """
+from typing import Optional
+
 from db.connection import get_connection
 
 
@@ -58,7 +60,7 @@ def listUserAccounts():
             return [dict(zip(columns, row)) for row in cur.fetchall()]
 
 
-def createModifySubscriptionPlan(plan_id: int | None, name: str, price: float, max_streams: int):
+def createModifySubscriptionPlan(plan_id: Optional[int], name: str, price: float, max_streams: int):
     """
     Insert or Update SubscriptionPlans. Use plan_id for update; pass None for insert.
     """

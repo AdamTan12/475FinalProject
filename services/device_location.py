@@ -2,6 +2,8 @@
 Device & Location Intelligence APIs.
 listDevices, listLocations, validateDeviceMFA.
 """
+from typing import Optional
+
 from db.connection import get_connection
 
 
@@ -40,7 +42,7 @@ def listLocations(user_id: int):
             return [dict(zip(columns, row)) for row in cur.fetchall()]
 
 
-def validateDeviceMFA(device_id: int, location_id: int, user_home_location_id: int | None) -> bool:
+def validateDeviceMFA(device_id: int, location_id: int, user_home_location_id: Optional[int]) -> bool:
     """
     Check if Device.IsTrusted is true. If false, or if LocationID != User.HomeLocationID, trigger MFA.
     Update Devices set IsTrusted = True upon success.
