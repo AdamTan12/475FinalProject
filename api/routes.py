@@ -1,0 +1,98 @@
+"""
+HTTP routes that delegate to service-layer APIs.
+API names match the spreadsheet/documentation.
+"""
+from fastapi import FastAPI, HTTPException
+
+from services import account_subscription, device_location, streaming, reporting
+
+app = FastAPI(title="Video Stream Platform API")
+
+
+# --- Account & Subscription Management ---
+
+@app.post("/createModifyUser")
+def createModifyUser_route(action: str, name: str, email: str, plan_id: int, user_id: int | None = None):
+    account_subscription.createModifyUser(action, name, email, plan_id, user_id=user_id)
+    return {"ok": True}
+
+
+@app.get("/listUserAccounts")
+def listUserAccounts_route():
+    return account_subscription.listUserAccounts()
+
+
+@app.post("/createModifySubscriptionPlan")
+def createModifySubscriptionPlan_route(plan_id: int | None, name: str, price: float, max_streams: int):
+    account_subscription.createModifySubscriptionPlan(plan_id, name, price, max_streams)
+    return {"ok": True}
+
+
+@app.get("/listSubscriptionPlans")
+def listSubscriptionPlans_route():
+    return account_subscription.listSubscriptionPlans()
+
+
+@app.post("/createModifyPaymentInfo")
+def createModifyPaymentInfo_route(user_id: int, amount: float, status: str = "Pending"):
+    account_subscription.createModifyPaymentInfo(user_id, amount, status)
+    return {"ok": True}
+
+
+@app.get("/reportMonthlyRevenue")
+def reportMonthlyRevenue_route(month: int, year: int):
+    return {"total": account_subscription.reportMonthlyRevenue(month, year)}
+
+
+# --- Device & Location Intelligence ---
+
+@app.get("/listDevices")
+def listDevices_route(user_id: int):
+    return device_location.listDevices(user_id)
+
+
+@app.get("/listLocations")
+def listLocations_route(user_id: int):
+    return device_location.listLocations(user_id)
+
+
+@app.post("/validateDeviceMFA")
+def validateDeviceMFA_route(device_id: int, location_id: int, user_home_location_id: int | None = None):
+    ok = device_location.validateDeviceMFA(device_id, location_id, user_home_location_id)
+    return {"allowed": ok}
+
+
+# --- Streaming Session & Enforcement ---
+
+@app.post("/attemptStartSession")
+def attemptStartSession_route(user_id: int, device_id: int, location_id: int):
+    return streaming.attemptStartSession(user_id, device_id, location_id)
+
+
+@app.post("/trackUserLoginLogout")
+def trackUserLoginLogout_route(user_id: int, action: str):
+    streaming.trackUserLoginLogout(user_id, action)
+    return {"ok": True}
+
+
+@app.post("/createModifyWatchTime")
+def createModifyWatchTime_route(session_id: int, duration_seconds: int):
+    streaming.createModifyWatchTime(session_id, duration_seconds)
+    return {"ok": True}
+
+
+@app.get("/listWatchHistory")
+def listWatchHistory_route(user_id: int):
+    return streaming.listWatchHistory(user_id)
+
+
+# --- Reporting ---
+
+@app.get("/reportTotalActiveSessions")
+def reportTotalActiveSessions_route():
+    return {"count": reporting.reportTotalActiveSessions()}
+
+
+@app.get("/reportSuspiciousActivity")
+def reportSuspiciousActivity_route():
+    return reporting.reportSuspiciousActivity()
