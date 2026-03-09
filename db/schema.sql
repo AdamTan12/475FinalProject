@@ -2,22 +2,22 @@
 -- Tables: subscription_plans, users, payments, locations, devices, sessions
 
 CREATE TABLE IF NOT EXISTS subscription_plans (
-    plan_id   SERIAL PRIMARY KEY,
-    name      VARCHAR(255) NOT NULL,
-    price     DECIMAL(10, 2) NOT NULL,
+    plan_id     SERIAL PRIMARY KEY,
+    name        VARCHAR(255) NOT NULL UNIQUE,
+    price       DECIMAL(10, 2) NOT NULL,
     max_streams INT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS users (
-    user_id   SERIAL PRIMARY KEY,
-    name      VARCHAR(255) NOT NULL,
-    email     VARCHAR(255) NOT NULL UNIQUE,
-    plan_id   INT NOT NULL REFERENCES subscription_plans(plan_id),
-    home_location_id INT,
-    account_status VARCHAR(50) DEFAULT 'active',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+    user_id           SERIAL PRIMARY KEY,
+    name              VARCHAR(255) NOT NULL UNIQUE,
+    email             VARCHAR(255) NOT NULL UNIQUE,
+    plan_id           INT NOT NULL REFERENCES subscription_plans(plan_id),
+    home_location_id  INT,
+    account_status    VARCHAR(50) DEFAULT 'active',
+    created_at        TIMESTAMPTZ DEFAULT NOW(),
+    updated_at        TIMESTAMPTZ DEFAULT NOW()
+);;
 
 CREATE TABLE IF NOT EXISTS locations (
     location_id SERIAL PRIMARY KEY,
