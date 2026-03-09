@@ -25,7 +25,7 @@ cd 475FinalProject
 ### 2. Create a virtual environment (recommended)
 
 ```bash
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate   # On Windows: venv\Scripts\activate
 ```
 
@@ -68,6 +68,16 @@ Or from `psql`:
 ```bash
 psql -U postgres -d streaming_db -f db/schema.sql
 ```
+
+### 6. (Optional) Seed sample data
+
+Populate the database with ~100 users, plans, locations, devices, payments, and sessions for testing:
+
+```bash
+python seed_sample_data.py
+```
+
+> **Note:** This clears all existing data before inserting. Re-running it resets the database to a clean sample state.
 
 ---
 
@@ -163,6 +173,7 @@ curl "http://localhost:8000/reportTotalActiveSessions"
 ├── requirements.txt
 ├── .env.example
 ├── main.py                 # Run the server
+├── seed_sample_data.py     # Populate DB with sample data
 ├── config/
 │   └── settings.py         # DATABASE_URL from environment
 ├── db/
