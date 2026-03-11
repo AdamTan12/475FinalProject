@@ -1,6 +1,6 @@
 """
 Device & Location Intelligence APIs.
-addDeviceByEmail, listDevices, listLocations, validateDeviceMFA.
+addDeviceByEmail, listDevices, listLocations.
 """
 from typing import Optional
 
@@ -68,27 +68,6 @@ def listLocations(email: str):
             )
             columns = [d[0] for d in cur.description]
             return [dict(zip(columns, row)) for row in cur.fetchall()]
-
-
-def validateDeviceMFA(device_id: int, location_id: int, user_home_location_id: Optional[int]) -> bool:
-    """
-    When trusted and at home: return True immediately (no DB writes or further logic).
-    When not: execute the failure path and return False (caller may trigger MFA).
-    """
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT is_trusted FROM devices WHERE device_id = %s",
-                (device_id,),
-            )
-            row = cur.fetchone()
-            if not row:
-                return False
-            is_trusted = row[0]
-            at_home = user_home_location_id is not None and location_id == user_home_location_id
-            if is_trusted and at_home:
-                return True
-            return False
 
 
 def markDeviceTrusted(device_id: int):

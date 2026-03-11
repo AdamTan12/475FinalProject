@@ -116,8 +116,6 @@ All endpoints are under the base URL `http://localhost:8000`. Use query paramete
 | POST | `/addDevice?email=...&name=...` | Add a device to the account (by email) |
 | GET | `/listDevices?email=...` | List devices for the account (by email) |
 | GET | `/listLocations?email=...` | List locations used by the account (from sessions) |
-| POST | `/validateDeviceMFA?device_id=1&location_id=1&user_home_location_id=1` | Check if device/location requires MFA |
-
 ### Streaming
 
 | Method | Endpoint | Description |

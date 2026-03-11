@@ -2,8 +2,6 @@
 HTTP routes that delegate to service-layer APIs.
 API names match the spreadsheet/documentation.
 """
-from typing import Optional
-
 from fastapi import FastAPI
 
 from services import account_subscription, device_location, streaming, reporting
@@ -70,12 +68,6 @@ def listDevices_route(email: str):
 @app.get("/listLocations")
 def listLocations_route(email: str):
     return device_location.listLocations(email)
-
-
-@app.post("/validateDeviceMFA")
-def validateDeviceMFA_route(device_id: int, location_id: int, user_home_location_id: Optional[int] = None):
-    ok = device_location.validateDeviceMFA(device_id, location_id, user_home_location_id)
-    return {"allowed": ok}
 
 
 # --- Streaming Session & Enforcement ---
