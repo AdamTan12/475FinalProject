@@ -113,6 +113,7 @@ All endpoints are under the base URL `http://localhost:8000`. Use query paramete
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| POST | `/addDevice?email=...&name=...` | Add a device to the account (by email) |
 | GET | `/listDevices?email=...` | List devices for the account (by email) |
 | GET | `/listLocations?email=...` | List locations used by the account (from sessions) |
 | POST | `/validateDeviceMFA?device_id=1&location_id=1&user_home_location_id=1` | Check if device/location requires MFA |
@@ -121,7 +122,7 @@ All endpoints are under the base URL `http://localhost:8000`. Use query paramete
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/attemptStateSession?email=...&device_fingerprint=...&latitude=...&longitude=...&ip_address=...` | Validate and start a session (by email, device fingerprint, location, IP) |
+| POST | `/attemptStateSession?email=...&device_name=...&latitude=...&longitude=...&ip_address=...` | Validate and start a session (by email, device name, location, IP) |
 | POST | `/attemptStartSession?user_id=1&device_id=1&location_id=1` | Legacy: try to start a session by IDs |
 | POST | `/trackUserLoginLogout?email=...&action=login` | Log login/logout to audit by email |
 | POST | `/createModifyWatchTime?session_id=1&duration_seconds=3600` | Set session end time by duration |
@@ -159,8 +160,8 @@ curl -X POST "http://localhost:8000/modifySubscriptionPlan?name=Basic&price=9.99
 curl "http://localhost:8000/listDevices?email=jane@example.com"
 curl "http://localhost:8000/listWatchHistory?email=jane@example.com"
 
-# Attempt session (email, device fingerprint, location, IP)
-curl -X POST "http://localhost:8000/attemptStateSession?email=jane@example.com&device_fingerprint=fp123&latitude=37.7&longitude=-122.4&ip_address=192.168.1.1"
+# Attempt session (email, device name, location, IP)
+curl -X POST "http://localhost:8000/attemptStateSession?email=jane@example.com&device_name=iPhone&latitude=37.7&longitude=-122.4&ip_address=192.168.1.1"
 
 # Track login/logout by email
 curl -X POST "http://localhost:8000/trackUserLoginLogout?email=jane@example.com&action=login"

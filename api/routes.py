@@ -56,6 +56,12 @@ def reportMonthlyRevenue_route(month: int, year: int):
 
 # --- Device & Location Intelligence ---
 
+@app.post("/addDevice")
+def addDevice_route(email: str, name: str):
+    device_location.addDeviceByEmail(email, name)
+    return {"ok": True}
+
+
 @app.get("/listDevices")
 def listDevices_route(email: str):
     return device_location.listDevices(email)
@@ -77,13 +83,13 @@ def validateDeviceMFA_route(device_id: int, location_id: int, user_home_location
 @app.post("/attemptStateSession")
 def attemptStateSession_route(
     email: str,
-    device_fingerprint: str,
+    device_name: str,
     latitude: float,
     longitude: float,
     ip_address: str,
 ):
     granted = streaming.attemptStateSession(
-        email, device_fingerprint, latitude, longitude, ip_address
+        email, device_name, latitude, longitude, ip_address
     )
     return {"granted": granted}
 

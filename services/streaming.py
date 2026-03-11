@@ -37,7 +37,7 @@ def _get_or_create_location_id(cur, latitude: float, longitude: float) -> int:
 
 def attemptStateSession(
     email: str,
-    device_fingerprint: str,
+    device_name: str,
     latitude: float,
     longitude: float,
     ip_address: str,
@@ -45,6 +45,7 @@ def attemptStateSession(
     """
     Validates and initiates a streaming session by email: account status, device eligibility,
     geographic access, and plan stream limits. Returns True if session granted, False otherwise.
+    Device is identified by name.
     """
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -60,9 +61,9 @@ def attemptStateSession(
             cur.execute(
                 """
                 SELECT device_id, last_seen_at_home FROM devices
-                WHERE user_id = %s AND (device_fingerprint = %s OR (device_fingerprint IS NULL AND name = %s))
+                WHERE user_id = %s AND name = %s
                 """,
-                (user_id, device_fingerprint, device_fingerprint),
+                (user_id, device_name),
             )
             dev_row = cur.fetchone()
             if not dev_row:

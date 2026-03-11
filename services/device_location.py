@@ -1,10 +1,28 @@
 """
 Device & Location Intelligence APIs.
-listDevices, listLocations, validateDeviceMFA.
+addDeviceByEmail, listDevices, listLocations, validateDeviceMFA.
 """
 from typing import Optional
 
 from db.connection import get_connection
+
+
+def addDeviceByEmail(email: str, name: str) -> None:
+    """Add a device for the user identified by email."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            row = cur.fetchone()
+            if not row:
+                raise ValueError(f"User not found: {email}")
+            user_id = row[0]
+            cur.execute(
+                """
+                INSERT INTO devices (user_id, name)
+                VALUES (%s, %s)
+                """,
+                (user_id, name),
+            )
 
 
 def listDevices(email: str):
