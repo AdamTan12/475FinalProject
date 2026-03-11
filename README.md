@@ -121,7 +121,7 @@ All endpoints are under the base URL `http://localhost:8000`. Use query paramete
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/attemptStateSession?email=...&device_name=...&latitude=...&longitude=...&ip_address=...` | Validate and start a session (by email, device name, location, IP) |
-| POST | `/attemptStartSession?user_id=1&device_id=1&location_id=1` | Legacy: try to start a session by IDs |
+| POST | `/attemptStartSession?email=...&latitude=...&longitude=...&ip_address=...` | Validate and start a session (by email, location, IP); returns whether access was granted |
 | POST | `/trackUserLoginLogout?email=...&action=login` | Log login/logout to audit by email |
 | POST | `/createModifyWatchTime?session_id=1&duration_seconds=3600` | Set session end time by duration |
 | GET | `/listWatchHistory?email=...` | Watch history for the account (by email) |

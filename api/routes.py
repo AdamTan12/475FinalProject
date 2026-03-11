@@ -87,8 +87,14 @@ def attemptStateSession_route(
 
 
 @app.post("/attemptStartSession")
-def attemptStartSession_route(user_id: int, device_id: int, location_id: int):
-    return streaming.attemptStartSession(user_id, device_id, location_id)
+def attemptStartSession_route(
+    email: str,
+    latitude: float,
+    longitude: float,
+    ip_address: str,
+):
+    granted = streaming.attemptStartSession(email, latitude, longitude, ip_address)
+    return {"granted": granted}
 
 
 @app.post("/trackUserLoginLogout")
