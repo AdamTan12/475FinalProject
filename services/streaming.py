@@ -6,6 +6,9 @@ from typing import Optional
 
 from db.connection import get_connection
 
+# Device selected by setDevice(); used by attemptStartSession when no device is passed.
+_current_device_name: Optional[str] = None
+
 
 def _get_user_id_by_email(cur, email: str):
     """Return (user_id, home_location_id, plan_id, account_status) or None."""
@@ -114,6 +117,15 @@ def attemptStateSession(
             return True
 
 
+def setDevice(device_name: Optional[str]) -> None:
+    """
+    Set the device to use for subsequent attemptStartSession calls.
+    Pass a device name to use that device, or None to use the user's first device (default).
+    """
+    global _current_device_name
+    _current_device_name = device_name
+
+
 def attemptStartSession(
     email: str,
     latitude: float,
@@ -123,9 +135,10 @@ def attemptStartSession(
     """
     Validates and initiates a streaming session for a subscriber by verifying account status,
     device eligibility, geographic access rights, and plan-based stream limits before granting
-    content access. Uses the user's first device. Returns True if session granted, False otherwise.
+    content access. Uses the device set by setDevice() if any, otherwise the user's first device.
+    Returns True if session granted, False otherwise.
     """
-    return attemptStateSession(email, None, latitude, longitude, ip_address)
+    return attemptStateSession(email, _current_device_name, latitude, longitude, ip_address)
 
 
 def trackUserLoginLogoutByEmail(email: str, action: str) -> None:
