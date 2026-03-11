@@ -59,19 +59,38 @@ def listUserAccounts():
             return [dict(zip(columns, row)) for row in cur.fetchall()]
 
 
-def modifySubscriptionPlan(plan_id: int, name: str, price: float, max_streams: int):
-    """
-    Insert or Update SubscriptionPlans. Use plan_id for update; pass None for insert.
-    """
+def updateUserByEmail(email: str, newName: str, newPlanName: str, newAccountStatus: str):
+    """Update a user identified by email, resolving plan and status by name."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT plan_id FROM subscription_plans WHERE name = %s", (newPlanName,))
+            plan_row = cur.fetchone()
+            if not plan_row:
+                raise ValueError(f"Plan not found: {newPlanName}")
+            cur.execute("SELECT status_id FROM account_statuses WHERE status_name = %s", (newAccountStatus,))
+            status_row = cur.fetchone()
+            if not status_row:
+                raise ValueError(f"Status not found: {newAccountStatus}")
+            cur.execute(
+                """
+                UPDATE users SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
+                WHERE email = %s
+                """,
+                (newName, plan_row[0], status_row[0], email),
+            )
+
+
+def modifySubscriptionPlan(name: str, price: float, max_streams: int):
+    """Update a subscription plan identified by name."""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 UPDATE subscription_plans
-                SET name = %s, price = %s, max_streams = %s
-                WHERE plan_id = %s
+                SET price = %s, max_streams = %s
+                WHERE name = %s
                 """,
-                (name, price, max_streams, plan_id),
+                (price, max_streams, name),
             )
 
 def createSubscriptionPlan(name: str, price: float, max_streams: int):

@@ -125,7 +125,7 @@ class TestSubscriptionPlans(unittest.TestCase):
         createSubscriptionPlan("Silver", 19.99, 3)
         plans = listSubscriptionPlans()
         silver = next(p for p in plans if p["name"] == "Silver")
-        modifySubscriptionPlan(silver["plan_id"], "Silver", 21.99, 3)
+        modifySubscriptionPlan("Silver", 21.99, 3)
         plans = listSubscriptionPlans()
         silver = next(p for p in plans if p["name"] == "Silver")
         self.assertAlmostEqual(float(silver["price"]), 21.99, places=2)
