@@ -4,6 +4,9 @@ attemptStartSession, trackUserLoginLogout, createModifyWatchTime, listWatchHisto
 """
 from db.connection import get_connection
 
+# Device selected by setDevice(); used by attemptStartSession when no device is passed.
+_current_device_name: Optional[str] = None
+
 
 def attemptStartSession(user_id: int, device_id: int, location_id: int) -> dict:
     """
@@ -73,6 +76,42 @@ def trackUserLoginLogout(user_id: int, action: str):
     """Insert into system logs (or Sessions for streaming login). Stub: add login_logs table to persist."""
     # TODO: create login_logs (user_id, action, created_at) and INSERT here
     pass
+def setDevice(device_name: Optional[str]) -> None:
+    """
+    Set the device to use for subsequent attemptStartSession calls.
+    Pass a device name to use that device, or None to use the user's first device (default).
+    """
+    global _current_device_name
+    _current_device_name = device_name
+
+
+def attemptStartSession(
+    email: str,
+    latitude: float,
+    longitude: float,
+    ip_address: str,
+) -> bool:
+    """
+    Validates and initiates a streaming session for a subscriber by verifying account status,
+    device eligibility, geographic access rights, and plan-based stream limits before granting
+    content access. Uses the device set by setDevice() if any, otherwise the user's first device.
+    Returns True if session granted, False otherwise.
+    """
+    return attemptStateSession(email, _current_device_name, latitude, longitude, ip_address)
+
+
+def trackUserLoginLogoutByEmail(email: str, action: str) -> None:
+    """Records login/logout activity for the account identified by email to the audit (login_logs)."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            row = cur.fetchone()
+            if not row:
+                raise ValueError(f"User not found: {email}")
+            cur.execute(
+                "INSERT INTO login_logs (user_id, action) VALUES (%s, %s)",
+                (row[0], action),
+            )
 
 
 def createModifyWatchTime(session_id: int, duration_seconds: int):
