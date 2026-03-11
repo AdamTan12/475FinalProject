@@ -1,7 +1,7 @@
 """
 Account & Subscription Management APIs.
 modifyUser, createUser, listUserAccounts, createModifySubscriptionPlan, listSubscriptionPlans,
-createModifyPaymentInfo, reportMonthlyRevenue.
+modifyUser, createUser, listUserAccounts, createSubscriptionPlan, modifySubscriptionPlan, listSubscriptionPlans.
 """
 from db.connection import get_connection
 
@@ -105,35 +105,3 @@ def listSubscriptionPlans():
             return [dict(zip(columns, row)) for row in cur.fetchall()]
 
 
-def createModifyPaymentInfo(user_id: int, amount: float, status: str = "Pending"):
-    """Insert into Payments table."""
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO payments (user_id, amount, status)
-                VALUES (%s, %s, %s)
-                """,
-                (user_id, amount, status),
-            )
-
-
-def reportMonthlyRevenue(month: int, year: int) -> float:
-    """
-    Sum Amount from Payments where status is 'Success' for the given month/year.
-    Returns total revenue for that month.
-    """
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT COALESCE(SUM(amount), 0)::float AS total
-                FROM payments
-                WHERE status = 'Success'
-                  AND EXTRACT(MONTH FROM payment_date) = %s
-                  AND EXTRACT(YEAR FROM payment_date) = %s
-                """,
-                (month, year),
-            )
-            row = cur.fetchone()
-            return row[0] if row else 0.0

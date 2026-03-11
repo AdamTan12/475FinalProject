@@ -115,8 +115,6 @@ All endpoints are under the base URL `http://localhost:8000`. Use query paramete
 | GET | `/listUserAccounts` | List all users |
 | POST | `/createModifySubscriptionPlan?plan_id=...&name=...&price=...&max_streams=...` | Create (plan_id empty) or update a plan |
 | GET | `/listSubscriptionPlans` | List all subscription plans |
-| POST | `/createModifyPaymentInfo?user_id=1&amount=9.99&status=Success` | Record a payment |
-| GET | `/reportMonthlyRevenue?month=3&year=2025` | Total revenue for a month |
 
 ### Device & Location
 
@@ -150,9 +148,6 @@ curl "http://localhost:8000/listUserAccounts"
 
 # List subscription plans
 curl "http://localhost:8000/listSubscriptionPlans"
-
-# Monthly revenue for March 2025
-curl "http://localhost:8000/reportMonthlyRevenue?month=3&year=2025"
 
 # Create a user (plan_id must exist)
 curl -X POST "http://localhost:8000/createUser?name=Jane&email=jane@example.com&plan_id=1"
@@ -199,9 +194,8 @@ curl "http://localhost:8000/reportTotalActiveSessions"
 You can also use the service layer directly (no HTTP), for example in tests or scripts:
 
 ```python
-from services.account_subscription import reportMonthlyRevenue, listUserAccounts
+from services.account_subscription import listUserAccounts
 
-revenue = reportMonthlyRevenue(3, 2025)
 users = listUserAccounts()
 ```
 

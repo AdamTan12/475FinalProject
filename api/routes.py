@@ -43,16 +43,6 @@ def listSubscriptionPlans_route():
     return account_subscription.listSubscriptionPlans()
 
 
-@app.post("/createModifyPaymentInfo")
-def createModifyPaymentInfo_route(user_id: int, amount: float, status: str = "Pending"):
-    account_subscription.createModifyPaymentInfo(user_id, amount, status)
-    return {"ok": True}
-
-
-@app.get("/reportMonthlyRevenue")
-def reportMonthlyRevenue_route(month: int, year: int):
-    return {"total": account_subscription.reportMonthlyRevenue(month, year)}
-
 
 # --- Device & Location Intelligence ---
 
