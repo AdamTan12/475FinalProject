@@ -100,7 +100,8 @@ All endpoints are under the base URL `http://localhost:8000`. Use query paramete
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/createModifyUser?action=create&name=...&email=...&plan_id=1` | Create or update a user |
+| POST | `/createUser?name=...&email=...&plan_id=1` | Create a user |
+| POST | `/modifyUser?name=...&email=...&plan_id=1` | Modify/Update a user |
 | GET | `/listUserAccounts` | List all users |
 | POST | `/createModifySubscriptionPlan?plan_id=...&name=...&price=...&max_streams=...` | Create (plan_id empty) or update a plan |
 | GET | `/listSubscriptionPlans` | List all subscription plans |
@@ -143,8 +144,11 @@ curl "http://localhost:8000/listSubscriptionPlans"
 # Monthly revenue for March 2025
 curl "http://localhost:8000/reportMonthlyRevenue?month=3&year=2025"
 
-# Create a user (action=create, plan_id must exist)
-curl -X POST "http://localhost:8000/createModifyUser?action=create&name=Jane&email=jane@example.com&plan_id=1"
+# Create a user (plan_id must exist)
+curl -X POST "http://localhost:8000/createUser?name=Jane&email=jane@example.com&plan_id=1"
+
+# Modify a user (plan_id must exist)
+curl -X POST "http://localhost:8000/name=Jane&email=jane@example.com&plan_id=1"
 
 # Try to start a streaming session
 curl -X POST "http://localhost:8000/attemptStartSession?user_id=1&device_id=1&location_id=1"

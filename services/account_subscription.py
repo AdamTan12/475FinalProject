@@ -1,48 +1,47 @@
 """
 Account & Subscription Management APIs.
-createModifyUser, listUserAccounts, createModifySubscriptionPlan, listSubscriptionPlans,
+modifyUser, createUser, listUserAccounts, createModifySubscriptionPlan, listSubscriptionPlans,
 createModifyPaymentInfo, reportMonthlyRevenue.
 """
-from typing import Optional
-
 from db.connection import get_connection
 
 
-def createModifyUser(action: str, name: str, email: str, plan_id: int, **kwargs):
+def createUser(name: str, email: str, plan_id: int):
     """
-    Insert or Update Users. action is 'create' or 'update'.
-    For update, identify by email (or pass user_id in kwargs).
+    Create Users
     """
     with get_connection() as conn:
         with conn.cursor() as cur:
-            if action == "create":
+            cur.execute(
+                """
+                INSERT INTO users (name, email, plan_id)
+                VALUES (%s, %s, %s)
+                """,
+                (name, email, plan_id),
+            )
+
+def modifyUser(name: str, email: str, plan_id: int, user_id=None):
+    """
+    Modify Users and identify by email
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            if user_id is not None:
                 cur.execute(
                     """
-                    INSERT INTO users (name, email, plan_id)
-                    VALUES (%s, %s, %s)
+                    UPDATE users SET name = %s, plan_id = %s, updated_at = NOW()
+                    WHERE user_id = %s
                     """,
-                    (name, email, plan_id),
+                    (name, plan_id, user_id),
                 )
-            elif action == "update":
-                user_id = kwargs.get("user_id")
-                if user_id is not None:
-                    cur.execute(
-                        """
-                        UPDATE users SET name = %s, plan_id = %s, updated_at = NOW()
-                        WHERE user_id = %s
-                        """,
-                        (name, plan_id, user_id),
-                    )
-                else:
-                    cur.execute(
-                        """
-                        UPDATE users SET name = %s, plan_id = %s, updated_at = NOW()
-                        WHERE email = %s
-                        """,
-                        (name, plan_id, email),
-                    )
             else:
-                raise ValueError("action must be 'create' or 'update'")
+                cur.execute(
+                    """
+                    UPDATE users SET name = %s, plan_id = %s, updated_at = NOW()
+                    WHERE email = %s
+                    """,
+                    (name, plan_id, email),
+                )
 
 
 def listUserAccounts():
