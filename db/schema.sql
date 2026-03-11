@@ -8,16 +8,21 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
     max_streams INT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS account_statuses (
+    status_id   SERIAL PRIMARY KEY,
+    status_name VARCHAR(50) NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS users (
     user_id           SERIAL PRIMARY KEY,
     name              VARCHAR(255) NOT NULL UNIQUE,
     email             VARCHAR(255) NOT NULL UNIQUE,
     plan_id           INT NOT NULL REFERENCES subscription_plans(plan_id),
+    status_id         INT NOT NULL REFERENCES account_statuses(status_id),
     home_location_id  INT,
-    account_status    VARCHAR(50) DEFAULT 'active',
     created_at        TIMESTAMPTZ DEFAULT NOW(),
     updated_at        TIMESTAMPTZ DEFAULT NOW()
-);;
+);
 
 CREATE TABLE IF NOT EXISTS locations (
     location_id SERIAL PRIMARY KEY,

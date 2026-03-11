@@ -33,6 +33,8 @@ LOCATION_DESCRIPTIONS = [
 
 DEVICE_NAMES = ["iPhone", "Android", "Chrome", "Safari", "TV", "iPad", "Fire TV", "Roku"]
 
+ACCOUNT_STATUSES = ["active", "inactive", "suspended"]
+
 
 def main():
     with get_connection() as conn:
@@ -45,14 +47,24 @@ def main():
         cur.execute("DELETE FROM users;")
         cur.execute("DELETE FROM locations;")
         cur.execute("DELETE FROM subscription_plans;")
+        cur.execute("DELETE FROM account_statuses;")
 
         # Reset sequences so IDs start at 1
         cur.execute("ALTER SEQUENCE subscription_plans_plan_id_seq RESTART WITH 1;")
+        cur.execute("ALTER SEQUENCE account_statuses_status_id_seq RESTART WITH 1;")
         cur.execute("ALTER SEQUENCE locations_location_id_seq RESTART WITH 1;")
         cur.execute("ALTER SEQUENCE users_user_id_seq RESTART WITH 1;")
         cur.execute("ALTER SEQUENCE devices_device_id_seq RESTART WITH 1;")
         cur.execute("ALTER SEQUENCE payments_payment_id_seq RESTART WITH 1;")
         cur.execute("ALTER SEQUENCE sessions_session_id_seq RESTART WITH 1;")
+
+        # --- Insert account_statuses ---
+        for status_name in ACCOUNT_STATUSES:
+            cur.execute(
+                "INSERT INTO account_statuses (status_name) VALUES (%s);",
+                (status_name,),
+            )
+        num_statuses = len(ACCOUNT_STATUSES)
 
         # --- Insert subscription_plans ---
         for name, price, max_streams in PLANS:
@@ -78,10 +90,11 @@ def main():
             name = "Sample User %d" % i
             email = "sampleuser%d@example.com" % i
             plan_id = random.randint(1, num_plans)
+            status_id = random.randint(1, num_statuses)
             home_location_id = random.randint(1, num_locations) if random.random() > 0.1 else None
             cur.execute(
-                "INSERT INTO users (name, email, plan_id, home_location_id) VALUES (%s, %s, %s, %s);",
-                (name, email, plan_id, home_location_id),
+                "INSERT INTO users (name, email, plan_id, status_id, home_location_id) VALUES (%s, %s, %s, %s, %s);",
+                (name, email, plan_id, status_id, home_location_id),
             )
 
         # --- Insert devices (~2-3 per user) ---

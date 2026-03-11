@@ -8,7 +8,7 @@ from typing import Optional
 from db.connection import get_connection
 
 
-def createModifyUser(action: str, name: str, email: str, plan_id: int, **kwargs):
+def createModifyUser(action: str, name: str, email: str, plan_id: int, status_id: int, **kwargs):
     """
     Insert or Update Users. action is 'create' or 'update'.
     For update, identify by email (or pass user_id in kwargs).
@@ -18,28 +18,28 @@ def createModifyUser(action: str, name: str, email: str, plan_id: int, **kwargs)
             if action == "create":
                 cur.execute(
                     """
-                    INSERT INTO users (name, email, plan_id)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO users (name, email, plan_id, status_id)
+                    VALUES (%s, %s, %s, %s)
                     """,
-                    (name, email, plan_id),
+                    (name, email, plan_id, status_id),
                 )
             elif action == "update":
                 user_id = kwargs.get("user_id")
                 if user_id is not None:
                     cur.execute(
                         """
-                        UPDATE users SET name = %s, plan_id = %s, updated_at = NOW()
+                        UPDATE users SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
                         WHERE user_id = %s
                         """,
-                        (name, plan_id, user_id),
+                        (name, plan_id, status_id, user_id),
                     )
                 else:
                     cur.execute(
                         """
-                        UPDATE users SET name = %s, plan_id = %s, updated_at = NOW()
+                        UPDATE users SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
                         WHERE email = %s
                         """,
-                        (name, plan_id, email),
+                        (name, plan_id, status_id, email),
                     )
             else:
                 raise ValueError("action must be 'create' or 'update'")
@@ -51,7 +51,7 @@ def listUserAccounts():
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT user_id, name, email, plan_id, home_location_id, account_status, created_at, updated_at
+                SELECT user_id, name, email, plan_id, status_id, home_location_id, created_at, updated_at
                 FROM users
                 ORDER BY user_id
                 """
