@@ -2,6 +2,8 @@
 HTTP routes that delegate to service-layer APIs.
 API names match the spreadsheet/documentation.
 """
+from typing import Optional
+
 from fastapi import FastAPI
 
 from services import account_subscription, device_location, streaming, reporting
@@ -16,9 +18,9 @@ def createUser_route(name: str, email: str, plan_id: int):
     account_subscription.createUser(name, email, plan_id)
     return {"ok": True}
 
-@app.post("/updateUserByEmail")
-def updateUserByEmail_route(email: str, newName: str, newPlanName: str, newAccountStatus: str):
-    account_subscription.updateUserByEmail(email, newName, newPlanName, newAccountStatus)
+@app.post("/modifyUser")
+def modifyUser_route(name: str, email: str, plan_id: int):
+    account_subscription.modifyUser(name, email, plan_id)
     return {"ok": True}
 
 @app.get("/listUserAccounts")
@@ -27,8 +29,8 @@ def listUserAccounts_route():
 
 
 @app.post("/modifySubscriptionPlan")
-def modifySubscriptionPlan_route(name: str, price: float, max_streams: int):
-    account_subscription.modifySubscriptionPlan(name, price, max_streams)
+def modifySubscriptionPlan_route(plan_id: int, name: str, price: float, max_streams: int):
+    account_subscription.modifySubscriptionPlan(plan_id, name, price, max_streams)
     return {"ok": True}
 
 @app.post("/createSubscriptionPlan")
@@ -44,52 +46,32 @@ def listSubscriptionPlans_route():
 
 # --- Device & Location Intelligence ---
 
-@app.post("/addDevice")
-def addDevice_route(email: str, name: str):
-    device_location.addDeviceByEmail(email, name)
-    return {"ok": True}
-
-
 @app.get("/listDevices")
-def listDevices_route(email: str):
-    return device_location.listDevices(email)
+def listDevices_route(user_id: int):
+    return device_location.listDevices(user_id)
 
 
 @app.get("/listLocations")
-def listLocations_route(email: str):
-    return device_location.listLocations(email)
+def listLocations_route(user_id: int):
+    return device_location.listLocations(user_id)
+
+
+@app.post("/validateDeviceMFA")
+def validateDeviceMFA_route(device_id: int, location_id: int, user_home_location_id: Optional[int] = None):
+    ok = device_location.validateDeviceMFA(device_id, location_id, user_home_location_id)
+    return {"allowed": ok}
 
 
 # --- Streaming Session & Enforcement ---
 
-@app.post("/attemptStateSession")
-def attemptStateSession_route(
-    email: str,
-    device_name: str,
-    latitude: float,
-    longitude: float,
-    ip_address: str,
-):
-    granted = streaming.attemptStateSession(
-        email, device_name, latitude, longitude, ip_address
-    )
-    return {"granted": granted}
-
-
 @app.post("/attemptStartSession")
-def attemptStartSession_route(
-    email: str,
-    latitude: float,
-    longitude: float,
-    ip_address: str,
-):
-    granted = streaming.attemptStartSession(email, latitude, longitude, ip_address)
-    return {"granted": granted}
+def attemptStartSession_route(user_id: int, device_id: int, location_id: int):
+    return streaming.attemptStartSession(user_id, device_id, location_id)
 
 
 @app.post("/trackUserLoginLogout")
-def trackUserLoginLogout_route(email: str, action: str):
-    streaming.trackUserLoginLogoutByEmail(email, action)
+def trackUserLoginLogout_route(user_id: int, action: str):
+    streaming.trackUserLoginLogout(user_id, action)
     return {"ok": True}
 
 
@@ -100,8 +82,8 @@ def createModifyWatchTime_route(session_id: int, duration_seconds: int):
 
 
 @app.get("/listWatchHistory")
-def listWatchHistory_route(email: str):
-    return streaming.listWatchHistoryByEmail(email)
+def listWatchHistory_route(user_id: int):
+    return streaming.listWatchHistory(user_id)
 
 
 # --- Reporting ---
