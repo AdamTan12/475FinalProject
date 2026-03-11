@@ -13,11 +13,15 @@ app = FastAPI(title="Video Stream Platform API")
 
 # --- Account & Subscription Management ---
 
-@app.post("/createModifyUser")
-def createModifyUser_route(action: str, name: str, email: str, plan_id: int, user_id: Optional[int] = None):
-    account_subscription.createModifyUser(action, name, email, plan_id, user_id=user_id)
+@app.post("/createUser")
+def createUser_route(name: str, email: str, plan_id: int):
+    account_subscription.createUser(name, email, plan_id)
     return {"ok": True}
 
+@app.post("/modifyUser")
+def modifyUser_route(name: str, email: str, plan_id: int):
+    account_subscription.modifyUser(name, email, plan_id)
+    return {"ok": True}
 
 @app.get("/listUserAccounts")
 def listUserAccounts_route():
