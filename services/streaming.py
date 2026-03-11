@@ -1,52 +1,99 @@
 """
 Streaming Session & Enforcement APIs.
-attemptStartSession, trackUserLoginLogout, createModifyWatchTime, listWatchHistory.
+attemptStateSession, attemptStartSession, trackUserLoginLogoutByEmail, createModifyWatchTime, listWatchHistoryByEmail.
 """
+from typing import Optional
+
 from db.connection import get_connection
 
 
-def attemptStartSession(user_id: int, device_id: int, location_id: int) -> dict:
+def _get_user_id_by_email(cur, email: str):
+    """Return (user_id, home_location_id, plan_id, account_status) or None."""
+    cur.execute(
+        """
+        SELECT u.user_id, u.home_location_id, u.plan_id, u.account_status, p.max_streams
+        FROM users u
+        JOIN subscription_plans p ON u.plan_id = p.plan_id
+        WHERE u.email = %s
+        """,
+        (email,),
+    )
+    return cur.fetchone()
+
+
+def _get_or_create_location_id(cur, latitude: float, longitude: float) -> int:
+    """Find or create location by lat/long; return location_id."""
+    cur.execute(
+        "SELECT location_id FROM locations WHERE latitude = %s AND longitude = %s",
+        (latitude, longitude),
+    )
+    row = cur.fetchone()
+    if row:
+        return row[0]
+    cur.execute(
+        "INSERT INTO locations (latitude, longitude, description) VALUES (%s, %s, %s) RETURNING location_id",
+        (latitude, longitude, f"({latitude}, {longitude})"),
+    )
+    return cur.fetchone()[0]
+
+
+def attemptStateSession(
+    email: str,
+    device_name: Optional[str],
+    latitude: float,
+    longitude: float,
+    ip_address: str,
+) -> bool:
     """
-    Concurrency: Check ActiveSessions < MaxConcurrentStreams.
-    Household 30-Day Rule: If LocationID != HomeLocationID, check if
-    Device.LastSeenAtHome > 30 days ago. If yes, Deny Access.
-    Atomic Transaction (Check + Insert). Returns {allowed: bool, session_id?: int, reason?: str}.
+    Validates and initiates a streaming session by email: account status, device eligibility,
+    geographic access, and plan stream limits. Returns True if session granted, False otherwise.
+    Device is identified by name when provided; otherwise the user's first device is used.
     """
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT u.home_location_id, p.max_streams
-                FROM users u
-                JOIN subscription_plans p ON u.plan_id = p.plan_id
-                WHERE u.user_id = %s
-                """,
-                (user_id,),
-            )
-            user_row = cur.fetchone()
+            user_row = _get_user_id_by_email(cur, email)
             if not user_row:
-                return {"allowed": False, "reason": "user not found"}
-            home_location_id, max_streams = user_row[0], user_row[1]
-
-            cur.execute(
-                """
-                SELECT COUNT(*) FROM sessions WHERE user_id = %s AND end_time IS NULL
-                """,
-                (user_id,),
+                return False
+            user_id, home_location_id, plan_id, max_streams = (
+                user_row[0], user_row[1], user_row[2], user_row[4]
             )
-            active_count = cur.fetchone()[0]
-            if active_count >= max_streams:
-                return {"allowed": False, "reason": "max concurrent streams reached"}
+            if user_row[3] != "active":
+                return False
 
-            if home_location_id is not None and location_id != home_location_id:
+            if device_name is not None:
                 cur.execute(
                     """
-                    SELECT last_seen_at_home FROM devices WHERE device_id = %s
+                    SELECT device_id, last_seen_at_home FROM devices
+                    WHERE user_id = %s AND name = %s
                     """,
-                    (device_id,),
+                    (user_id, device_name),
                 )
-                dev_row = cur.fetchone()
-                if dev_row and dev_row[0]:
+            else:
+                cur.execute(
+                    """
+                    SELECT device_id, last_seen_at_home FROM devices
+                    WHERE user_id = %s
+                    ORDER BY device_id
+                    LIMIT 1
+                    """,
+                    (user_id,),
+                )
+            dev_row = cur.fetchone()
+            if not dev_row:
+                return False
+            device_id, last_seen_at_home = dev_row[0], dev_row[1]
+
+            location_id = _get_or_create_location_id(cur, latitude, longitude)
+
+            cur.execute(
+                "SELECT COUNT(*) FROM sessions WHERE user_id = %s AND end_time IS NULL",
+                (user_id,),
+            )
+            if cur.fetchone()[0] >= max_streams:
+                return False
+
+            if home_location_id is not None and location_id != home_location_id:
+                if last_seen_at_home:
                     cur.execute(
                         """
                         SELECT 1 FROM devices
@@ -55,24 +102,44 @@ def attemptStartSession(user_id: int, device_id: int, location_id: int) -> dict:
                         (device_id,),
                     )
                     if cur.fetchone() is None:
-                        return {"allowed": False, "reason": "30-day household rule"}
+                        return False
 
             cur.execute(
                 """
-                INSERT INTO sessions (user_id, device_id, location_id)
-                VALUES (%s, %s, %s)
-                RETURNING session_id
+                INSERT INTO sessions (user_id, device_id, location_id, ip_address)
+                VALUES (%s, %s, %s, %s)
                 """,
-                (user_id, device_id, location_id),
+                (user_id, device_id, location_id, ip_address),
             )
-            session_id = cur.fetchone()[0]
-            return {"allowed": True, "session_id": session_id}
+            return True
 
 
-def trackUserLoginLogout(user_id: int, action: str):
-    """Insert into system logs (or Sessions for streaming login). Stub: add login_logs table to persist."""
-    # TODO: create login_logs (user_id, action, created_at) and INSERT here
-    pass
+def attemptStartSession(
+    email: str,
+    latitude: float,
+    longitude: float,
+    ip_address: str,
+) -> bool:
+    """
+    Validates and initiates a streaming session for a subscriber by verifying account status,
+    device eligibility, geographic access rights, and plan-based stream limits before granting
+    content access. Uses the user's first device. Returns True if session granted, False otherwise.
+    """
+    return attemptStateSession(email, None, latitude, longitude, ip_address)
+
+
+def trackUserLoginLogoutByEmail(email: str, action: str) -> None:
+    """Records login/logout activity for the account identified by email to the audit (login_logs)."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            row = cur.fetchone()
+            if not row:
+                raise ValueError(f"User not found: {email}")
+            cur.execute(
+                "INSERT INTO login_logs (user_id, action) VALUES (%s, %s)",
+                (row[0], action),
+            )
 
 
 def createModifyWatchTime(session_id: int, duration_seconds: int):
@@ -89,15 +156,18 @@ def createModifyWatchTime(session_id: int, duration_seconds: int):
             )
 
 
-def listWatchHistory(user_id: int):
-    """Select from Sessions (Start/End Time) joined with Locations and Devices."""
+def listWatchHistoryByEmail(email: str):
+    """Returns watch history for the account identified by email as readable entries (no internal IDs)."""
     with get_connection() as conn:
         with conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            row = cur.fetchone()
+            if not row:
+                return []
+            user_id = row[0]
             cur.execute(
                 """
-                SELECT s.session_id, s.start_time, s.end_time,
-                       l.location_id, l.description AS location_description,
-                       d.device_id, d.name AS device_name
+                SELECT s.start_time, s.end_time, l.description AS location_description, d.name AS device_name
                 FROM sessions s
                 JOIN locations l ON s.location_id = l.location_id
                 JOIN devices d ON s.device_id = d.device_id

@@ -114,24 +114,28 @@ All endpoints are under the base URL `http://localhost:8000`. Use query paramete
 | POST | `/modifyUser?name=...&email=...&plan_id=1` | Modify/Update a user |
 | GET | `/listUserAccounts` | List all users |
 | POST | `/createModifySubscriptionPlan?plan_id=...&name=...&price=...&max_streams=...` | Create (plan_id empty) or update a plan |
+| POST | `/updateUserByEmail?email=...&newName=...&newPlanName=...&newAccountStatus=...` | Update a user by email |
+| GET | `/listUserAccounts` | List all users (no internal IDs in response) |
+| POST | `/modifySubscriptionPlan?name=...&price=...&max_streams=...` | Update a subscription plan by name |
+| POST | `/createSubscriptionPlan?name=...&price=...&max_streams=...` | Create a new subscription plan |
 | GET | `/listSubscriptionPlans` | List all subscription plans |
 
 ### Device & Location
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/listDevices?user_id=1` | List devices for a user |
-| GET | `/listLocations?user_id=1` | List locations used by a user (from sessions) |
-| POST | `/validateDeviceMFA?device_id=1&location_id=1&user_home_location_id=1` | Check if device/location requires MFA |
-
+| POST | `/addDevice?email=...&name=...` | Add a device to the account (by email) |
+| GET | `/listDevices?email=...` | List devices for the account (by email) |
+| GET | `/listLocations?email=...` | List locations used by the account (from sessions) |
 ### Streaming
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/attemptStartSession?user_id=1&device_id=1&location_id=1` | Try to start a session (checks concurrency and 30-day rule) |
-| POST | `/trackUserLoginLogout?user_id=1&action=login` | Log login/logout (stub) |
+| POST | `/attemptStateSession?email=...&device_name=...&latitude=...&longitude=...&ip_address=...` | Validate and start a session (by email, device name, location, IP) |
+| POST | `/attemptStartSession?email=...&latitude=...&longitude=...&ip_address=...` | Validate and start a session (by email, location, IP); returns whether access was granted |
+| POST | `/trackUserLoginLogout?email=...&action=login` | Log login/logout to audit by email |
 | POST | `/createModifyWatchTime?session_id=1&duration_seconds=3600` | Set session end time by duration |
-| GET | `/listWatchHistory?user_id=1` | Watch history with locations and devices |
+| GET | `/listWatchHistory?email=...` | Watch history for the account (by email) |
 
 ### Reporting
 
@@ -152,11 +156,21 @@ curl "http://localhost:8000/listSubscriptionPlans"
 # Create a user (plan_id must exist)
 curl -X POST "http://localhost:8000/createUser?name=Jane&email=jane@example.com&plan_id=1"
 
-# Modify a user (plan_id must exist)
-curl -X POST "http://localhost:8000/name=Jane&email=jane@example.com&plan_id=1"
+# Update a user by email (plan name must exist)
+curl -X POST "http://localhost:8000/updateUserByEmail?email=jane@example.com&newName=Jane&newPlanName=Basic&newAccountStatus=active"
 
-# Try to start a streaming session
-curl -X POST "http://localhost:8000/attemptStartSession?user_id=1&device_id=1&location_id=1"
+# Modify a subscription plan by name
+curl -X POST "http://localhost:8000/modifySubscriptionPlan?name=Basic&price=9.99&max_streams=2"
+
+# List devices and watch history by email
+curl "http://localhost:8000/listDevices?email=jane@example.com"
+curl "http://localhost:8000/listWatchHistory?email=jane@example.com"
+
+# Attempt session (email, device name, location, IP)
+curl -X POST "http://localhost:8000/attemptStateSession?email=jane@example.com&device_name=iPhone&latitude=37.7&longitude=-122.4&ip_address=192.168.1.1"
+
+# Track login/logout by email
+curl -X POST "http://localhost:8000/trackUserLoginLogout?email=jane@example.com&action=login"
 
 # Total active sessions
 curl "http://localhost:8000/reportTotalActiveSessions"
