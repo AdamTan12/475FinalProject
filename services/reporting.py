@@ -9,7 +9,7 @@ def reportTotalActiveSessions() -> int:
     """Count total sessions where end_time is NULL (active sessions)."""
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM sessions WHERE end_time IS NULL")
+            cur.execute("SELECT COUNT(*) FROM session WHERE end_time IS NULL")
             row = cur.fetchone()
             return row[0] if row else 0
 
@@ -21,10 +21,10 @@ def reportSuspiciousActivity():
             cur.execute(
                 """
                 SELECT u.email
-                FROM users u
+                FROM "user" u
                 JOIN (
                     SELECT user_id
-                    FROM sessions
+                    FROM session
                     WHERE end_time IS NULL
                     GROUP BY user_id
                     HAVING COUNT(*) > 2

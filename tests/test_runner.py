@@ -20,13 +20,13 @@ def reset_schema():
     schema_sql = schema_path.read_text()
 
     drop_sql = """
-    DROP TABLE IF EXISTS sessions   CASCADE;
-    DROP TABLE IF EXISTS payments   CASCADE;
-    DROP TABLE IF EXISTS devices    CASCADE;
-    DROP TABLE IF EXISTS users      CASCADE;
-    DROP TABLE IF EXISTS locations  CASCADE;
-    DROP TABLE IF EXISTS account_statuses CASCADE;
-    DROP TABLE IF EXISTS subscription_plans CASCADE;
+    DROP TABLE IF EXISTS session          CASCADE;
+    DROP TABLE IF EXISTS payment          CASCADE;
+    DROP TABLE IF EXISTS device           CASCADE;
+    DROP TABLE IF EXISTS "user"           CASCADE;
+    DROP TABLE IF EXISTS location         CASCADE;
+    DROP TABLE IF EXISTS account_status   CASCADE;
+    DROP TABLE IF EXISTS subscription_plan CASCADE;
     """
 
     with get_connection() as conn:

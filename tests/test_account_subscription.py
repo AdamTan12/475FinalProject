@@ -22,12 +22,12 @@ def _setup_prerequisites():
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO subscription_plans (name, price, max_streams) VALUES (%s, %s, %s) RETURNING plan_id;",
+                "INSERT INTO subscription_plan (name, price, max_streams) VALUES (%s, %s, %s) RETURNING plan_id;",
                 ("Test Plan", 9.99, 1),
             )
             plan_id = cur.fetchone()[0]
             cur.execute(
-                "INSERT INTO account_statuses (status_name) VALUES (%s) RETURNING status_id;",
+                "INSERT INTO account_status (status_name) VALUES (%s) RETURNING status_id;",
                 ("active",),
             )
             status_id = cur.fetchone()[0]
@@ -37,12 +37,13 @@ def _setup_prerequisites():
 def _cleanup():
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM payments;")
-            cur.execute("DELETE FROM sessions;")
-            cur.execute("DELETE FROM devices;")
-            cur.execute("DELETE FROM users;")
-            cur.execute("DELETE FROM subscription_plans;")
-            cur.execute("DELETE FROM account_statuses;")
+            cur.execute("DELETE FROM payment;")
+            cur.execute("DELETE FROM session;")
+            cur.execute("DELETE FROM device;")
+            cur.execute('DELETE FROM "user";')
+            cur.execute("DELETE FROM location;")
+            cur.execute("DELETE FROM subscription_plan;")
+            cur.execute("DELETE FROM account_status;")
 
 
 class TestCreateUser(unittest.TestCase):
@@ -172,7 +173,6 @@ class TestListUserAccounts(unittest.TestCase):
 class TestQuerySubscriptionPlan(unittest.TestCase):
     def setUp(self):
         _cleanup()
-        _setup_prerequisites()
 
     def tearDown(self):
         _cleanup()
@@ -217,5 +217,3 @@ class TestSubscriptionPlans(unittest.TestCase):
     def test_modify_plan_nonexistent_returns_false(self):
         ok = modifySubscriptionPlan("NoSuchPlan", 9.99, 1)
         self.assertFalse(ok)
-
-

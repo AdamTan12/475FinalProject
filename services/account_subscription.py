@@ -1,7 +1,7 @@
 """
 Account & Subscription Management APIs.
-createUserAccount, updateUserByEmail, listUserAccounts, createSubscriptionPlan,
-modifySubscriptionPlan, querySubscriptionPlan, listSubscriptionPlans.
+createUserAccount, createUser, modifyUser, updateUserByEmail, listUserAccounts,
+createSubscriptionPlan, modifySubscriptionPlan, querySubscriptionPlan, listSubscriptionPlans.
 """
 import psycopg2
 from db.connection import get_connection
@@ -22,11 +22,11 @@ def createUserAccount(
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT plan_id FROM subscription_plans WHERE name = %s", (planName,))
+                cur.execute("SELECT plan_id FROM subscription_plan WHERE name = %s", (planName,))
                 plan_row = cur.fetchone()
                 if not plan_row:
                     return False
-                cur.execute("SELECT status_id FROM account_statuses WHERE status_name = %s", ("active",))
+                cur.execute("SELECT status_id FROM account_status WHERE status_name = %s", ("active",))
                 status_row = cur.fetchone()
                 if not status_row:
                     return False
@@ -34,7 +34,7 @@ def createUserAccount(
                 home_location_id = None
                 if latitude is not None and longitude is not None:
                     cur.execute(
-                        "SELECT location_id FROM locations WHERE latitude = %s AND longitude = %s",
+                        "SELECT location_id FROM location WHERE latitude = %s AND longitude = %s",
                         (latitude, longitude),
                     )
                     loc_row = cur.fetchone()
@@ -43,7 +43,7 @@ def createUserAccount(
                     else:
                         cur.execute(
                             """
-                            INSERT INTO locations (latitude, longitude)
+                            INSERT INTO location (latitude, longitude)
                             VALUES (%s, %s)
                             RETURNING location_id
                             """,
@@ -53,7 +53,7 @@ def createUserAccount(
 
                 cur.execute(
                     """
-                    INSERT INTO users (name, email, plan_id, status_id, home_location_id)
+                    INSERT INTO "user" (name, email, plan_id, status_id, home_location_id)
                     VALUES (%s, %s, %s, %s, %s)
                     """,
                     (name, email, plan_row[0], status_row[0], home_location_id),
@@ -64,14 +64,12 @@ def createUserAccount(
 
 
 def createUser(name: str, email: str, plan_id: int, status_id: int):
-    """
-    Create Users (internal/legacy).
-    """
+    """Create Users (internal/legacy)."""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO users (name, email, plan_id, status_id)
+                INSERT INTO "user" (name, email, plan_id, status_id)
                 VALUES (%s, %s, %s, %s)
                 """,
                 (name, email, plan_id, status_id),
@@ -79,15 +77,13 @@ def createUser(name: str, email: str, plan_id: int, status_id: int):
 
 
 def modifyUser(name: str, email: str, plan_id: int, status_id: int, user_id=None):
-    """
-    Modify Users and identify by email
-    """
+    """Modify Users and identify by email."""
     with get_connection() as conn:
         with conn.cursor() as cur:
             if user_id is not None:
                 cur.execute(
                     """
-                    UPDATE users SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
+                    UPDATE "user" SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
                     WHERE user_id = %s
                     """,
                     (name, plan_id, status_id, user_id),
@@ -95,7 +91,7 @@ def modifyUser(name: str, email: str, plan_id: int, status_id: int, user_id=None
             else:
                 cur.execute(
                     """
-                    UPDATE users SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
+                    UPDATE "user" SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
                     WHERE email = %s
                     """,
                     (name, plan_id, status_id, email),
@@ -109,7 +105,7 @@ def listUserAccounts():
             cur.execute(
                 """
                 SELECT user_id, name, email, plan_id, status_id, home_location_id, created_at, updated_at
-                FROM users
+                FROM "user"
                 ORDER BY user_id
                 """
             )
@@ -127,17 +123,17 @@ def updateUserByEmail(
     """Update a user identified by email, resolving plan and status by name. Returns True if updated."""
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT plan_id FROM subscription_plans WHERE name = %s", (newPlanName,))
+            cur.execute("SELECT plan_id FROM subscription_plan WHERE name = %s", (newPlanName,))
             plan_row = cur.fetchone()
             if not plan_row:
                 return False
-            cur.execute("SELECT status_id FROM account_statuses WHERE status_name = %s", (newAccountStatus,))
+            cur.execute("SELECT status_id FROM account_status WHERE status_name = %s", (newAccountStatus,))
             status_row = cur.fetchone()
             if not status_row:
                 return False
             cur.execute(
                 """
-                UPDATE users SET name = %s, plan_id = %s, status_id = %s, home_location_id = %s, updated_at = NOW()
+                UPDATE "user" SET name = %s, plan_id = %s, status_id = %s, home_location_id = %s, updated_at = NOW()
                 WHERE email = %s
                 """,
                 (newName, plan_row[0], status_row[0], homeLocID, email),
@@ -151,7 +147,7 @@ def modifySubscriptionPlan(name: str, price: float, max_streams: int) -> bool:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                UPDATE subscription_plans
+                UPDATE subscription_plan
                 SET price = %s, max_streams = %s
                 WHERE name = %s
                 """,
@@ -161,24 +157,20 @@ def modifySubscriptionPlan(name: str, price: float, max_streams: int) -> bool:
 
 
 def createSubscriptionPlan(name: str, price: float, max_streams: int) -> bool:
-    """
-    Create or adjust subscription plan by name (upsert). Returns True on success, False on failure.
-    """
+    """Create or update subscription plan by name (upsert). Returns True on success, False on failure."""
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT plan_id FROM subscription_plans WHERE name = %s", (name,))
+                cur.execute("SELECT plan_id FROM subscription_plan WHERE name = %s", (name,))
                 if cur.fetchone():
                     cur.execute(
-                        """
-                        UPDATE subscription_plans SET price = %s, max_streams = %s WHERE name = %s
-                        """,
+                        "UPDATE subscription_plan SET price = %s, max_streams = %s WHERE name = %s",
                         (price, max_streams, name),
                     )
                 else:
                     cur.execute(
                         """
-                        INSERT INTO subscription_plans (name, price, max_streams)
+                        INSERT INTO subscription_plan (name, price, max_streams)
                         VALUES (%s, %s, %s)
                         """,
                         (name, price, max_streams),
@@ -188,7 +180,6 @@ def createSubscriptionPlan(name: str, price: float, max_streams: int) -> bool:
         return False
 
 
-
 def querySubscriptionPlan(planID: int):
     """Return plan object for the given plan_id, or None if not found."""
     with get_connection() as conn:
@@ -196,7 +187,7 @@ def querySubscriptionPlan(planID: int):
             cur.execute(
                 """
                 SELECT plan_id, name, price, max_streams
-                FROM subscription_plans
+                FROM subscription_plan
                 WHERE plan_id = %s
                 """,
                 (planID,),
@@ -215,11 +206,9 @@ def listSubscriptionPlans():
             cur.execute(
                 """
                 SELECT plan_id, name, price, max_streams
-                FROM subscription_plans
+                FROM subscription_plan
                 ORDER BY plan_id
                 """
             )
             columns = [d[0] for d in cur.description]
             return [dict(zip(columns, row)) for row in cur.fetchall()]
-
-

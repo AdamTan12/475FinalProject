@@ -1,6 +1,6 @@
 """
 Streaming Session & Enforcement APIs.
-attemptStateSession, attemptStartSession, trackUserLoginLogoutByEmail,
+attemptStartSession, attemptEndSession, trackUserLoginLogoutByEmail,
 createModifyWatchTime, listWatchHistoryByEmail.
 """
 from db.connection import get_connection
@@ -11,9 +11,9 @@ def _get_user_id_by_email(cur, email: str):
     cur.execute(
         """
         SELECT u.user_id, u.home_location_id, u.plan_id, a.status_name, p.max_streams
-        FROM users u
-        JOIN subscription_plans p ON u.plan_id = p.plan_id
-        JOIN account_statuses a ON u.status_id = a.status_id
+        FROM "user" u
+        JOIN subscription_plan p ON u.plan_id = p.plan_id
+        JOIN account_status a ON u.status_id = a.status_id
         WHERE u.email = %s
         """,
         (email,),
@@ -24,22 +24,22 @@ def _get_user_id_by_email(cur, email: str):
 def _get_approved_location_id(cur, latitude: float, longitude: float):
     """Return location_id if this lat/long is an approved location, else None."""
     cur.execute(
-        "SELECT location_id FROM locations WHERE latitude = %s AND longitude = %s",
+        "SELECT location_id FROM location WHERE latitude = %s AND longitude = %s",
         (latitude, longitude),
     )
     row = cur.fetchone()
     return row[0] if row else None
 
 
-def attemptStateSession(
+def attemptStartSession(
     email: str,
     device_fingerprint: str,
     latitude: float,
     longitude: float,
-):
+) -> tuple:
     """
     Validates and initiates a streaming session. Returns (granted: bool, reason: str | None).
-    When granted is False, reason describes why (e.g. for API to return to client).
+    When granted is False, reason describes why.
     """
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -54,7 +54,7 @@ def attemptStateSession(
 
             cur.execute(
                 """
-                SELECT device_id, last_seen_at_home FROM devices
+                SELECT device_id, last_seen_at_home FROM device
                 WHERE device_fingerprint = %s AND user_id = %s
                 """,
                 (device_fingerprint, user_id),
@@ -63,7 +63,7 @@ def attemptStateSession(
             if not dev_row:
                 return (
                     False,
-                    "Device not registered to this account. Add the device first via addDeviceToAccount (same email and deviceFingerprint).",
+                    "Device not registered to this account. Add the device first via addDeviceToAccount.",
                 )
             device_id, last_seen_at_home = dev_row[0], dev_row[1]
 
@@ -75,7 +75,7 @@ def attemptStateSession(
                 )
 
             cur.execute(
-                "SELECT COUNT(*) FROM sessions WHERE user_id = %s AND end_time IS NULL",
+                "SELECT COUNT(*) FROM session WHERE user_id = %s AND end_time IS NULL",
                 (user_id,),
             )
             active_count = cur.fetchone()[0]
@@ -86,7 +86,7 @@ def attemptStateSession(
                 if last_seen_at_home:
                     cur.execute(
                         """
-                        SELECT 1 FROM devices
+                        SELECT 1 FROM device
                         WHERE device_id = %s AND last_seen_at_home >= NOW() - INTERVAL '30 days'
                         """,
                         (device_id,),
@@ -99,24 +99,12 @@ def attemptStateSession(
 
             cur.execute(
                 """
-                INSERT INTO sessions (user_id, device_id, location_id)
+                INSERT INTO session (user_id, device_id, location_id)
                 VALUES (%s, %s, %s)
                 """,
                 (user_id, device_id, location_id),
             )
             return (True, None)
-
-
-def attemptStartSession(
-    email: str,
-    device_fingerprint: str,
-    latitude: float,
-    longitude: float,
-):
-    """
-    Validates and initiates a streaming session. Returns (granted: bool, reason: str | None).
-    """
-    return attemptStateSession(email, device_fingerprint, latitude, longitude)
 
 
 def attemptEndSession(email: str, deviceFingerprint: str) -> bool:
@@ -126,13 +114,13 @@ def attemptEndSession(email: str, deviceFingerprint: str) -> bool:
     """
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            cur.execute('SELECT user_id FROM "user" WHERE email = %s', (email,))
             row = cur.fetchone()
             if not row:
                 return False
             user_id = row[0]
             cur.execute(
-                "SELECT device_id FROM devices WHERE device_fingerprint = %s AND user_id = %s",
+                "SELECT device_id FROM device WHERE device_fingerprint = %s AND user_id = %s",
                 (deviceFingerprint, user_id),
             )
             dev_row = cur.fetchone()
@@ -141,7 +129,7 @@ def attemptEndSession(email: str, deviceFingerprint: str) -> bool:
             device_id = dev_row[0]
             cur.execute(
                 """
-                UPDATE sessions SET end_time = NOW()
+                UPDATE session SET end_time = NOW()
                 WHERE user_id = %s AND device_id = %s AND end_time IS NULL
                 """,
                 (user_id, device_id),
@@ -155,12 +143,12 @@ def trackUserLoginLogoutByEmail(email: str, action: str) -> None:
 
 
 def createModifyWatchTime(session_id: int, duration_seconds: int):
-    """Update Sessions set EndTime based on duration (StartTime + duration)."""
+    """Update session set end_time based on duration (start_time + duration)."""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                UPDATE sessions
+                UPDATE session
                 SET end_time = start_time + (%s || ' seconds')::interval
                 WHERE session_id = %s
                 """,
@@ -172,7 +160,7 @@ def listWatchHistoryByEmail(email: str):
     """Returns watch history for the account identified by email as readable entries (no internal IDs)."""
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            cur.execute('SELECT user_id FROM "user" WHERE email = %s', (email,))
             row = cur.fetchone()
             if not row:
                 return []
@@ -180,9 +168,9 @@ def listWatchHistoryByEmail(email: str):
             cur.execute(
                 """
                 SELECT s.start_time, s.end_time, l.description AS location_description, d.name AS device_name
-                FROM sessions s
-                JOIN locations l ON s.location_id = l.location_id
-                JOIN devices d ON s.device_id = d.device_id
+                FROM session s
+                JOIN location l ON s.location_id = l.location_id
+                JOIN device d ON s.device_id = d.device_id
                 WHERE s.user_id = %s
                 ORDER BY s.start_time DESC
                 """,

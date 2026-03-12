@@ -10,12 +10,12 @@ from services import streaming, reporting
 def _cleanup():
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM sessions;")
-            cur.execute("DELETE FROM devices;")
-            cur.execute("DELETE FROM users;")
-            cur.execute("DELETE FROM locations;")
-            cur.execute("DELETE FROM subscription_plans;")
-            cur.execute("DELETE FROM account_statuses;")
+            cur.execute("DELETE FROM session;")
+            cur.execute("DELETE FROM device;")
+            cur.execute('DELETE FROM "user";')
+            cur.execute("DELETE FROM location;")
+            cur.execute("DELETE FROM subscription_plan;")
+            cur.execute("DELETE FROM account_status;")
 
 
 def _setup_user_and_device(email="stream@example.com", plan_name="Basic", max_streams=2):
@@ -23,28 +23,27 @@ def _setup_user_and_device(email="stream@example.com", plan_name="Basic", max_st
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO subscription_plans (name, price, max_streams) VALUES (%s, %s, %s) RETURNING plan_id;",
+                "INSERT INTO subscription_plan (name, price, max_streams) VALUES (%s, %s, %s) RETURNING plan_id;",
                 (plan_name, 9.99, max_streams),
             )
             plan_id = cur.fetchone()[0]
             cur.execute(
-                "INSERT INTO account_statuses (status_name) VALUES (%s) RETURNING status_id;",
+                "INSERT INTO account_status (status_name) VALUES (%s) RETURNING status_id;",
                 ("active",),
             )
             status_id = cur.fetchone()[0]
             cur.execute(
-                "INSERT INTO locations (latitude, longitude) VALUES (47.0, -122.0);"
+                "INSERT INTO location (latitude, longitude) VALUES (47.0, -122.0) RETURNING location_id;"
             )
-            cur.execute("SELECT location_id FROM locations ORDER BY location_id DESC LIMIT 1;")
             location_id = cur.fetchone()[0]
             cur.execute(
-                "INSERT INTO users (name, email, plan_id, status_id, home_location_id) VALUES (%s, %s, %s, %s, %s);",
+                'INSERT INTO "user" (name, email, plan_id, status_id, home_location_id) VALUES (%s, %s, %s, %s, %s);',
                 ("Stream User", email, plan_id, status_id, location_id),
             )
-            cur.execute("SELECT user_id FROM users WHERE email = %s;", (email,))
+            cur.execute('SELECT user_id FROM "user" WHERE email = %s;', (email,))
             user_id = cur.fetchone()[0]
             cur.execute(
-                "INSERT INTO devices (user_id, name, device_type, device_fingerprint) VALUES (%s, %s, %s, %s);",
+                "INSERT INTO device (user_id, name, device_type, device_fingerprint) VALUES (%s, %s, %s, %s);",
                 (user_id, "phone", "mobile", "fp-stream-001"),
             )
     return email, location_id, "fp-stream-001"
@@ -61,15 +60,15 @@ class TestAttemptEndSession(unittest.TestCase):
     def test_attempt_end_session_closes_active_session(self):
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT user_id FROM users WHERE email = %s", (self.email,))
+                cur.execute('SELECT user_id FROM "user" WHERE email = %s', (self.email,))
                 user_id = cur.fetchone()[0]
                 cur.execute(
-                    "SELECT device_id FROM devices WHERE device_fingerprint = %s",
+                    "SELECT device_id FROM device WHERE device_fingerprint = %s",
                     (self.device_fp,),
                 )
                 device_id = cur.fetchone()[0]
                 cur.execute(
-                    "INSERT INTO sessions (user_id, device_id, location_id) VALUES (%s, %s, %s)",
+                    "INSERT INTO session (user_id, device_id, location_id) VALUES (%s, %s, %s)",
                     (user_id, device_id, self.location_id),
                 )
         ok = streaming.attemptEndSession(self.email, self.device_fp)
@@ -77,7 +76,7 @@ class TestAttemptEndSession(unittest.TestCase):
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "SELECT COUNT(*) FROM sessions WHERE user_id = (SELECT user_id FROM users WHERE email = %s) AND end_time IS NOT NULL",
+                    'SELECT COUNT(*) FROM session WHERE user_id = (SELECT user_id FROM "user" WHERE email = %s) AND end_time IS NOT NULL',
                     (self.email,),
                 )
                 self.assertEqual(cur.fetchone()[0], 1)
@@ -106,15 +105,15 @@ class TestReportTotalActiveSessions(unittest.TestCase):
         email, loc_id, dev_fp = _setup_user_and_device()
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+                cur.execute('SELECT user_id FROM "user" WHERE email = %s', (email,))
                 user_id = cur.fetchone()[0]
                 cur.execute(
-                    "SELECT device_id FROM devices WHERE device_fingerprint = %s",
+                    "SELECT device_id FROM device WHERE device_fingerprint = %s",
                     (dev_fp,),
                 )
                 device_id = cur.fetchone()[0]
                 cur.execute(
-                    "INSERT INTO sessions (user_id, device_id, location_id) VALUES (%s, %s, %s), (%s, %s, %s)",
+                    "INSERT INTO session (user_id, device_id, location_id) VALUES (%s, %s, %s), (%s, %s, %s)",
                     (user_id, device_id, loc_id, user_id, device_id, loc_id),
                 )
         count = reporting.reportTotalActiveSessions()
@@ -136,16 +135,16 @@ class TestReportSuspiciousActivity(unittest.TestCase):
         email, loc_id, dev_fp = _setup_user_and_device(max_streams=5)
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+                cur.execute('SELECT user_id FROM "user" WHERE email = %s', (email,))
                 user_id = cur.fetchone()[0]
                 cur.execute(
-                    "SELECT device_id FROM devices WHERE device_fingerprint = %s",
+                    "SELECT device_id FROM device WHERE device_fingerprint = %s",
                     (dev_fp,),
                 )
                 device_id = cur.fetchone()[0]
                 for _ in range(3):
                     cur.execute(
-                        "INSERT INTO sessions (user_id, device_id, location_id) VALUES (%s, %s, %s)",
+                        "INSERT INTO session (user_id, device_id, location_id) VALUES (%s, %s, %s)",
                         (user_id, device_id, loc_id),
                     )
         emails = reporting.reportSuspiciousActivity()

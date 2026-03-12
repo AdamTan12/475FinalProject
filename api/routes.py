@@ -28,6 +28,12 @@ def createUserAccount_route(
     return {"ok": True}
 
 
+@app.post("/createUser")
+def createUser_route(name: str, email: str, plan_id: int, status_id: int):
+    account_subscription.createUser(name, email, plan_id, status_id)
+    return {"ok": True}
+
+
 @app.post("/updateUserByEmail")
 def updateUserByEmail_route(
     email: str,
@@ -87,6 +93,12 @@ def addDeviceToAccount_route(
     return {"device_id": device_id}
 
 
+@app.post("/addDevice")
+def addDevice_route(email: str, name: str, device_fingerprint: str):
+    device_location.addDeviceByEmail(email, name, device_fingerprint)
+    return {"ok": True}
+
+
 @app.post("/addLocation")
 def addLocation_route(latitude: float, longitude: float):
     location_id = device_location.addLocation(latitude, longitude)
@@ -104,20 +116,6 @@ def listLocations_route(email: str):
 
 
 # --- Streaming Session & Enforcement ---
-
-@app.post("/attemptStateSession")
-def attemptStateSession_route(
-    email: str,
-    device_fingerprint: str,
-    latitude: float,
-    longitude: float,
-):
-    granted, reason = streaming.attemptStateSession(email, device_fingerprint, latitude, longitude)
-    out = {"granted": granted}
-    if not granted and reason:
-        out["reason"] = reason
-    return out
-
 
 @app.post("/attemptStartSession")
 def attemptStartSession_route(
