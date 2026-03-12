@@ -26,20 +26,14 @@ def _get_user_id_by_email(cur, email: str):
     return cur.fetchone()
 
 
-def _get_or_create_location_id(cur, latitude: float, longitude: float) -> int:
-    """Find or create location by lat/long; return location_id."""
+def _get_approved_location_id(cur, latitude: float, longitude: float):
+    """Return location_id if this lat/long is an approved location, else None."""
     cur.execute(
         "SELECT location_id FROM locations WHERE latitude = %s AND longitude = %s",
         (latitude, longitude),
     )
     row = cur.fetchone()
-    if row:
-        return row[0]
-    cur.execute(
-        "INSERT INTO locations (latitude, longitude, description) VALUES (%s, %s, %s) RETURNING location_id",
-        (latitude, longitude, f"({latitude}, {longitude})"),
-    )
-    return cur.fetchone()[0]
+    return row[0] if row else None
 
 
 def attemptStateSession(
@@ -87,7 +81,9 @@ def attemptStateSession(
                 return False
             device_id, last_seen_at_home = dev_row[0], dev_row[1]
 
-            location_id = _get_or_create_location_id(cur, latitude, longitude)
+            location_id = _get_approved_location_id(cur, latitude, longitude)
+            if location_id is None:
+                return False
 
             cur.execute(
                 "SELECT COUNT(*) FROM sessions WHERE user_id = %s AND end_time IS NULL",
