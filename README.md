@@ -200,3 +200,15 @@ users = listUserAccounts()
 ```
 
 Run such code from the project root so that `config`, `db`, and `services` are on `PYTHONPATH`.
+
+---
+
+## Notes & Limitations
+
+- **Device fingerprinting** — The `device_fingerprint` field is a caller-supplied string stored as-is. This project does not implement a real fingerprinting algorithm (e.g. hardware ID hashing, browser canvas fingerprinting). For local testing, pass any consistent unique string (e.g. `"my-macbook-001"`). In a production system, fingerprint generation would be handled by a native SDK on the device.
+
+- **Approved locations** — The `locations` table acts as a whitelist of approved streaming locations. Adding locations to this table (the approval workflow) is out of scope for this project.
+
+- **Login/logout tracking** — `trackUserLoginLogout` is stubbed; no `login_logs` table exists in the current schema.
+
+- **Payments** — The `payments` table exists in the schema for data completeness but payment processing APIs are out of scope.
