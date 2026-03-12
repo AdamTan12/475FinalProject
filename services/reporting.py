@@ -10,7 +10,7 @@ def reportTotalActiveSessions() -> int:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT user_id, COUNT(*) FROM sessions WHERE end_time IS NULL GROUP BY user_id"
+                "SELECT user_id, COUNT(*) FROM session WHERE end_time IS NULL GROUP BY user_id"
             )
             row = cur.fetchone()
             return row[0] if row else 0
@@ -23,7 +23,7 @@ def reportSuspiciousActivity():
             cur.execute(
                 """
                 SELECT user_id, COUNT(DISTINCT location_id) AS location_count
-                FROM sessions
+                FROM session
                 WHERE end_time IS NULL
                 GROUP BY user_id
                 HAVING COUNT(DISTINCT location_id) > 2

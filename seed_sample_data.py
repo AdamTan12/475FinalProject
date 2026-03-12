@@ -41,46 +41,46 @@ def main():
         cur = conn.cursor()
 
         # --- Clear existing data (FK-safe order) ---
-        cur.execute("DELETE FROM sessions;")
-        cur.execute("DELETE FROM payments;")
-        cur.execute("DELETE FROM devices;")
-        cur.execute("DELETE FROM users;")
-        cur.execute("DELETE FROM locations;")
-        cur.execute("DELETE FROM subscription_plans;")
-        cur.execute("DELETE FROM account_statuses;")
+        cur.execute('DELETE FROM session;')
+        cur.execute('DELETE FROM payment;')
+        cur.execute('DELETE FROM device;')
+        cur.execute('DELETE FROM "user";')
+        cur.execute('DELETE FROM location;')
+        cur.execute('DELETE FROM subscription_plan;')
+        cur.execute('DELETE FROM account_status;')
 
         # Reset sequences so IDs start at 1
-        cur.execute("ALTER SEQUENCE subscription_plans_plan_id_seq RESTART WITH 1;")
-        cur.execute("ALTER SEQUENCE account_statuses_status_id_seq RESTART WITH 1;")
-        cur.execute("ALTER SEQUENCE locations_location_id_seq RESTART WITH 1;")
-        cur.execute("ALTER SEQUENCE users_user_id_seq RESTART WITH 1;")
-        cur.execute("ALTER SEQUENCE devices_device_id_seq RESTART WITH 1;")
-        cur.execute("ALTER SEQUENCE payments_payment_id_seq RESTART WITH 1;")
-        cur.execute("ALTER SEQUENCE sessions_session_id_seq RESTART WITH 1;")
+        cur.execute("ALTER SEQUENCE subscription_plan_plan_id_seq RESTART WITH 1;")
+        cur.execute("ALTER SEQUENCE account_status_status_id_seq RESTART WITH 1;")
+        cur.execute("ALTER SEQUENCE location_location_id_seq RESTART WITH 1;")
+        cur.execute('ALTER SEQUENCE "user_user_id_seq" RESTART WITH 1;')
+        cur.execute("ALTER SEQUENCE device_device_id_seq RESTART WITH 1;")
+        cur.execute("ALTER SEQUENCE payment_payment_id_seq RESTART WITH 1;")
+        cur.execute("ALTER SEQUENCE session_session_id_seq RESTART WITH 1;")
 
-        # --- Insert account_statuses ---
+        # --- Insert account_status ---
         for status_name in ACCOUNT_STATUSES:
             cur.execute(
-                "INSERT INTO account_statuses (status_name) VALUES (%s);",
+                "INSERT INTO account_status (status_name) VALUES (%s);",
                 (status_name,),
             )
         num_statuses = len(ACCOUNT_STATUSES)
 
-        # --- Insert subscription_plans ---
+        # --- Insert subscription_plan ---
         for name, price, max_streams in PLANS:
             cur.execute(
-                "INSERT INTO subscription_plans (name, price, max_streams) VALUES (%s, %s, %s);",
+                "INSERT INTO subscription_plan (name, price, max_streams) VALUES (%s, %s, %s);",
                 (name, price, max_streams),
             )
         num_plans = len(PLANS)
 
-        # --- Insert locations ---
+        # --- Insert location ---
         num_locations = len(LOCATION_DESCRIPTIONS)
         for desc in LOCATION_DESCRIPTIONS:
             lat = round(random.uniform(25.0, 48.0), 5) if random.random() > 0.3 else None
             lon = round(random.uniform(-125.0, -70.0), 5) if lat is not None else None
             cur.execute(
-                "INSERT INTO locations (latitude, longitude, description) VALUES (%s, %s, %s);",
+                "INSERT INTO location (latitude, longitude, description) VALUES (%s, %s, %s);",
                 (lat, lon, desc),
             )
 
@@ -93,7 +93,7 @@ def main():
             status_id = random.randint(1, num_statuses)
             home_location_id = random.randint(1, num_locations) if random.random() > 0.1 else None
             cur.execute(
-                "INSERT INTO users (name, email, plan_id, status_id, home_location_id) VALUES (%s, %s, %s, %s, %s);",
+                'INSERT INTO "user" (name, email, plan_id, status_id, home_location_id) VALUES (%s, %s, %s, %s, %s);',
                 (name, email, plan_id, status_id, home_location_id),
             )
 
@@ -111,22 +111,22 @@ def main():
         for idx, (user_id, dname, is_trusted, last_seen) in enumerate(device_rows):
             fingerprint = "seed-device-%d" % (idx + 1)
             cur.execute(
-                "INSERT INTO devices (user_id, name, device_fingerprint, is_trusted, last_seen_at_home) VALUES (%s, %s, %s, %s, %s);",
+                "INSERT INTO device (user_id, name, device_fingerprint, is_trusted, last_seen_at_home) VALUES (%s, %s, %s, %s, %s);",
                 (user_id, dname, fingerprint, is_trusted, last_seen),
             )
         num_devices = len(device_rows)
 
         # Build user_id -> list of device_ids (1-based device_id after insert order)
-        cur.execute("SELECT device_id, user_id FROM devices ORDER BY device_id;")
+        cur.execute("SELECT device_id, user_id FROM device ORDER BY device_id;")
         device_user = cur.fetchall()
         user_device_ids = {}
         for dev_id, uid in device_user:
             user_device_ids.setdefault(uid, []).append(dev_id)
 
         # --- Insert payments (~3-8 per user, spread over 6-12 months) ---
-        cur.execute("SELECT user_id, plan_id FROM users;")
+        cur.execute('SELECT user_id, plan_id FROM "user";')
         user_plans = {uid: pid for uid, pid in cur.fetchall()}
-        cur.execute("SELECT plan_id, price FROM subscription_plans;")
+        cur.execute("SELECT plan_id, price FROM subscription_plan;")
         plan_prices = {pid: float(price) for pid, price in cur.fetchall()}
         num_payments = 0
         base_date = datetime.utcnow() - timedelta(days=365)
@@ -137,7 +137,7 @@ def main():
                 pay_date = base_date + timedelta(days=random.randint(0, 365))
                 status = "Success" if random.random() > 0.15 else "Pending"
                 cur.execute(
-                    "INSERT INTO payments (user_id, amount, status, payment_date) VALUES (%s, %s, %s, %s);",
+                    "INSERT INTO payment (user_id, amount, status, payment_date) VALUES (%s, %s, %s, %s);",
                     (user_id, price, status, pay_date),
                 )
                 num_payments += 1
@@ -161,7 +161,7 @@ def main():
                 device_id = random.choice(dev_ids)
                 location_id = random.choice(loc_ids)
                 cur.execute(
-                    "INSERT INTO sessions (user_id, device_id, location_id, start_time, end_time) VALUES (%s, %s, %s, %s, %s);",
+                    "INSERT INTO session (user_id, device_id, location_id, start_time, end_time) VALUES (%s, %s, %s, %s, %s);",
                     (user_id, device_id, location_id, start_time, end_time),
                 )
                 num_sessions += 1

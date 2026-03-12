@@ -14,7 +14,7 @@ def createUser(name: str, email: str, plan_id: int, status_id: int):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO users (name, email, plan_id, status_id)
+                INSERT INTO "user" (name, email, plan_id, status_id)
                 VALUES (%s, %s, %s, %s)
                 """,
                 (name, email, plan_id, status_id),
@@ -29,7 +29,7 @@ def modifyUser(name: str, email: str, plan_id: int, status_id: int, user_id=None
             if user_id is not None:
                 cur.execute(
                     """
-                    UPDATE users SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
+                    UPDATE "user" SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
                     WHERE user_id = %s
                     """,
                     (name, plan_id, status_id, user_id),
@@ -37,7 +37,7 @@ def modifyUser(name: str, email: str, plan_id: int, status_id: int, user_id=None
             else:
                 cur.execute(
                     """
-                    UPDATE users SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
+                    UPDATE "user" SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
                     WHERE email = %s
                     """,
                     (name, plan_id, status_id, email),
@@ -51,7 +51,7 @@ def listUserAccounts():
             cur.execute(
                 """
                 SELECT user_id, name, email, plan_id, status_id, home_location_id, created_at, updated_at
-                FROM users
+                FROM "user"
                 ORDER BY user_id
                 """
             )
@@ -63,17 +63,17 @@ def updateUserByEmail(email: str, newName: str, newPlanName: str, newAccountStat
     """Update a user identified by email, resolving plan and status by name."""
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT plan_id FROM subscription_plans WHERE name = %s", (newPlanName,))
+            cur.execute("SELECT plan_id FROM subscription_plan WHERE name = %s", (newPlanName,))
             plan_row = cur.fetchone()
             if not plan_row:
                 raise ValueError(f"Plan not found: {newPlanName}")
-            cur.execute("SELECT status_id FROM account_statuses WHERE status_name = %s", (newAccountStatus,))
+            cur.execute("SELECT status_id FROM account_status WHERE status_name = %s", (newAccountStatus,))
             status_row = cur.fetchone()
             if not status_row:
                 raise ValueError(f"Status not found: {newAccountStatus}")
             cur.execute(
                 """
-                UPDATE users SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
+                UPDATE "user" SET name = %s, plan_id = %s, status_id = %s, updated_at = NOW()
                 WHERE email = %s
                 """,
                 (newName, plan_row[0], status_row[0], email),
@@ -86,7 +86,7 @@ def modifySubscriptionPlan(name: str, price: float, max_streams: int):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                UPDATE subscription_plans
+                UPDATE subscription_plan
                 SET price = %s, max_streams = %s
                 WHERE name = %s
                 """,
@@ -101,7 +101,7 @@ def createSubscriptionPlan(name: str, price: float, max_streams: int):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO subscription_plans (name, price, max_streams)
+                INSERT INTO subscription_plan (name, price, max_streams)
                 VALUES (%s, %s, %s)
                 """,
                 (name, price, max_streams),
@@ -116,7 +116,7 @@ def listSubscriptionPlans():
             cur.execute(
                 """
                 SELECT plan_id, name, price, max_streams
-                FROM subscription_plans
+                FROM subscription_plan
                 ORDER BY plan_id
                 """
             )

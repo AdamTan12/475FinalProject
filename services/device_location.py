@@ -9,14 +9,14 @@ def addDeviceByEmail(email: str, name: str, device_fingerprint: str) -> None:
     """Add a device for the user identified by email, storing the provided fingerprint."""
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            cur.execute('SELECT user_id FROM "user" WHERE email = %s', (email,))
             row = cur.fetchone()
             if not row:
                 raise ValueError(f"User not found: {email}")
             user_id = row[0]
             cur.execute(
                 """
-                INSERT INTO devices (user_id, name, device_fingerprint)
+                INSERT INTO device (user_id, name, device_fingerprint)
                 VALUES (%s, %s, %s)
                 """,
                 (user_id, name, device_fingerprint),
@@ -24,10 +24,10 @@ def addDeviceByEmail(email: str, name: str, device_fingerprint: str) -> None:
 
 
 def listDevices(email: str):
-    """Select from Devices for the user identified by email."""
+    """Select from device for the user identified by email."""
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            cur.execute('SELECT user_id FROM "user" WHERE email = %s', (email,))
             row = cur.fetchone()
             if not row:
                 return []
@@ -35,7 +35,7 @@ def listDevices(email: str):
             cur.execute(
                 """
                 SELECT name, is_trusted, last_seen_at_home, created_at, updated_at
-                FROM devices
+                FROM device
                 WHERE user_id = %s
                 ORDER BY created_at
                 """,
@@ -46,10 +46,10 @@ def listDevices(email: str):
 
 
 def listLocations(email: str):
-    """Select distinct Locations linked to user's Sessions. User identified by email."""
+    """Select distinct locations linked to user's sessions. User identified by email."""
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            cur.execute('SELECT user_id FROM "user" WHERE email = %s', (email,))
             row = cur.fetchone()
             if not row:
                 return []
@@ -57,8 +57,8 @@ def listLocations(email: str):
             cur.execute(
                 """
                 SELECT DISTINCT l.latitude, l.longitude, l.description, l.created_at
-                FROM locations l
-                JOIN sessions s ON s.location_id = l.location_id
+                FROM location l
+                JOIN session s ON s.location_id = l.location_id
                 WHERE s.user_id = %s
                 ORDER BY l.description
                 """,
@@ -73,6 +73,6 @@ def markDeviceTrusted(device_id: int):
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE devices SET is_trusted = TRUE, updated_at = NOW() WHERE device_id = %s",
+                "UPDATE device SET is_trusted = TRUE, updated_at = NOW() WHERE device_id = %s",
                 (device_id,),
             )
