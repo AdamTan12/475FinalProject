@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS location (
 
 CREATE TABLE IF NOT EXISTS "user" (
     user_id          SERIAL PRIMARY KEY,
-    name             VARCHAR(255) NOT NULL,
+    name             VARCHAR(255) NOT NULL UNIQUE,
     email            VARCHAR(255) NOT NULL UNIQUE,
     plan_id          INT NOT NULL REFERENCES subscription_plan(plan_id),
     status_id        INT NOT NULL REFERENCES account_status(status_id),
@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS device (
     device_id          SERIAL PRIMARY KEY,
     user_id            INT NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
     name               VARCHAR(255),
+    device_type        VARCHAR(100),
     device_fingerprint VARCHAR(255) NOT NULL UNIQUE,
     is_trusted         BOOLEAN DEFAULT FALSE,
     last_seen_at_home  TIMESTAMPTZ,

@@ -129,7 +129,6 @@ All endpoints are under the base URL `http://localhost:8000`. Use query paramete
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/attemptStartSession?user_id=1&device_id=1&location_id=1` | Try to start a session (checks concurrency and 30-day rule) |
-| POST | `/trackUserLoginLogout?user_id=1&action=login` | Log login/logout (stub) |
 | POST | `/createModifyWatchTime?session_id=1&duration_seconds=3600` | Set session end time by duration |
 | GET | `/listWatchHistory?user_id=1` | Watch history with locations and devices |
 

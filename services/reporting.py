@@ -6,28 +6,29 @@ from db.connection import get_connection
 
 
 def reportTotalActiveSessions() -> int:
-    """Count Sessions where EndTime is NULL."""
+    """Count total sessions where end_time is NULL (active sessions)."""
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "SELECT user_id, COUNT(*) FROM session WHERE end_time IS NULL GROUP BY user_id"
-            )
+            cur.execute("SELECT COUNT(*) FROM session WHERE end_time IS NULL")
             row = cur.fetchone()
             return row[0] if row else 0
 
 
 def reportSuspiciousActivity():
-    """Find users with active sessions in >2 distinct locations simultaneously."""
+    """Return list of emails for accounts with more than 2 active sessions."""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT user_id, COUNT(DISTINCT location_id) AS location_count
-                FROM session
-                WHERE end_time IS NULL
-                GROUP BY user_id
-                HAVING COUNT(DISTINCT location_id) > 2
+                SELECT u.email
+                FROM "user" u
+                JOIN (
+                    SELECT user_id
+                    FROM session
+                    WHERE end_time IS NULL
+                    GROUP BY user_id
+                    HAVING COUNT(*) > 2
+                ) active ON active.user_id = u.user_id
                 """
             )
-            columns = [d[0] for d in cur.description]
-            return [dict(zip(columns, row)) for row in cur.fetchall()]
+            return [row[0] for row in cur.fetchall()]
