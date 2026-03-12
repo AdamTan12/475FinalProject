@@ -10,3 +10,4 @@ tests/__pycache__/
 services/__pycache__/account_subscription.cpython-314.pyc
 services/__pycache__/device_location.cpython-314.pyc
 services/__pycache__/streaming.cpython-314.pyc
+.env

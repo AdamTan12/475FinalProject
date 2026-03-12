@@ -108,10 +108,11 @@ def main():
                 is_trusted = j == 0
                 last_seen = (datetime.utcnow() - timedelta(days=random.randint(0, 60))) if random.random() > 0.4 else None
                 device_rows.append((user_id, dname, is_trusted, last_seen))
-        for user_id, dname, is_trusted, last_seen in device_rows:
+        for idx, (user_id, dname, is_trusted, last_seen) in enumerate(device_rows):
+            fingerprint = "seed-device-%d" % (idx + 1)
             cur.execute(
-                "INSERT INTO devices (user_id, name, is_trusted, last_seen_at_home) VALUES (%s, %s, %s, %s);",
-                (user_id, dname, is_trusted, last_seen),
+                "INSERT INTO devices (user_id, name, device_fingerprint, is_trusted, last_seen_at_home) VALUES (%s, %s, %s, %s, %s);",
+                (user_id, dname, fingerprint, is_trusted, last_seen),
             )
         num_devices = len(device_rows)
 
