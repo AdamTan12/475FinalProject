@@ -5,8 +5,8 @@ addDeviceByEmail, listDevices, listLocations.
 from db.connection import get_connection
 
 
-def addDeviceByEmail(email: str, name: str) -> None:
-    """Add a device for the user identified by email."""
+def addDeviceByEmail(email: str, name: str) -> str:
+    """Add a device for the user identified by email. Returns the device_token UUID."""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
@@ -18,9 +18,11 @@ def addDeviceByEmail(email: str, name: str) -> None:
                 """
                 INSERT INTO devices (user_id, name)
                 VALUES (%s, %s)
+                RETURNING device_token
                 """,
                 (user_id, name),
             )
+            return str(cur.fetchone()[0])
 
 
 def listDevices(email: str):

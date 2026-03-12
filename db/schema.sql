@@ -37,13 +37,14 @@ ALTER TABLE users
     FOREIGN KEY (home_location_id) REFERENCES locations(location_id);
 
 CREATE TABLE IF NOT EXISTS devices (
-    device_id   SERIAL PRIMARY KEY,
-    user_id     INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    name        VARCHAR(255),
-    is_trusted  BOOLEAN DEFAULT FALSE,
+    device_id    SERIAL PRIMARY KEY,
+    user_id      INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    name         VARCHAR(255),
+    device_token UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    is_trusted   BOOLEAN DEFAULT FALSE,
     last_seen_at_home TIMESTAMPTZ,
-    created_at  TIMESTAMPTZ DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ DEFAULT NOW()
+    created_at   TIMESTAMPTZ DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS payments (

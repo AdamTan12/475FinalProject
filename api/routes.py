@@ -45,8 +45,8 @@ def listSubscriptionPlans_route():
 
 @app.post("/addDevice")
 def addDevice_route(email: str, name: str):
-    device_location.addDeviceByEmail(email, name)
-    return {"ok": True}
+    device_token = device_location.addDeviceByEmail(email, name)
+    return {"device_token": device_token}
 
 @app.get("/listDevices")
 def listDevices_route(email: str):
@@ -62,21 +62,22 @@ def listLocations_route(email: str):
 @app.post("/attemptStateSession")
 def attemptStateSession_route(
     email: str,
-    device_name: str,
+    device_token: str,
     latitude: float,
     longitude: float,
 ):
-    granted = streaming.attemptStateSession(email, device_name, latitude, longitude)
+    granted = streaming.attemptStateSession(email, device_token, latitude, longitude)
     return {"granted": granted}
 
 
 @app.post("/attemptStartSession")
 def attemptStartSession_route(
     email: str,
+    device_token: str,
     latitude: float,
     longitude: float,
 ):
-    granted = streaming.attemptStartSession(email, latitude, longitude)
+    granted = streaming.attemptStartSession(email, device_token, latitude, longitude)
     return {"granted": granted}
 
 

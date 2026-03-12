@@ -1,14 +1,9 @@
 """
 Streaming Session & Enforcement APIs.
-attemptStateSession, attemptStartSession, setDevice, trackUserLoginLogoutByEmail,
+attemptStateSession, attemptStartSession, trackUserLoginLogoutByEmail,
 createModifyWatchTime, listWatchHistoryByEmail.
 """
-from typing import Optional
-
 from db.connection import get_connection
-
-# Device selected by setDevice(); used by attemptStartSession when no device is passed.
-_current_device_name: Optional[str] = None
 
 
 def _get_user_id_by_email(cur, email: str):
@@ -38,14 +33,14 @@ def _get_approved_location_id(cur, latitude: float, longitude: float):
 
 def attemptStateSession(
     email: str,
-    device_name: Optional[str],
+    device_token: str,
     latitude: float,
     longitude: float,
 ) -> bool:
     """
     Validates and initiates a streaming session by email: account status, device eligibility,
     geographic access, and plan stream limits. Returns True if session granted, False otherwise.
-    Device is identified by name when provided; otherwise the user's first device is used.
+    Device is identified by its UUID token.
     """
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -58,24 +53,13 @@ def attemptStateSession(
             if status_name != "active":
                 return False
 
-            if device_name is not None:
-                cur.execute(
-                    """
-                    SELECT device_id, last_seen_at_home FROM devices
-                    WHERE user_id = %s AND name = %s
-                    """,
-                    (user_id, device_name),
-                )
-            else:
-                cur.execute(
-                    """
-                    SELECT device_id, last_seen_at_home FROM devices
-                    WHERE user_id = %s
-                    ORDER BY device_id
-                    LIMIT 1
-                    """,
-                    (user_id,),
-                )
+            cur.execute(
+                """
+                SELECT device_id, last_seen_at_home FROM devices
+                WHERE device_token = %s AND user_id = %s
+                """,
+                (device_token, user_id),
+            )
             dev_row = cur.fetchone()
             if not dev_row:
                 return False
@@ -114,27 +98,17 @@ def attemptStateSession(
             return True
 
 
-def setDevice(device_name: Optional[str]) -> None:
-    """
-    Set the device to use for subsequent attemptStartSession calls.
-    Pass a device name to use that device, or None to use the user's first device (default).
-    """
-    global _current_device_name
-    _current_device_name = device_name
-
-
 def attemptStartSession(
     email: str,
+    device_token: str,
     latitude: float,
     longitude: float,
 ) -> bool:
     """
-    Validates and initiates a streaming session for a subscriber by verifying account status,
-    device eligibility, geographic access rights, and plan-based stream limits before granting
-    content access. Uses the device set by setDevice() if any, otherwise the user's first device.
+    Validates and initiates a streaming session. Delegates to attemptStateSession.
     Returns True if session granted, False otherwise.
     """
-    return attemptStateSession(email, _current_device_name, latitude, longitude)
+    return attemptStateSession(email, device_token, latitude, longitude)
 
 
 def trackUserLoginLogoutByEmail(email: str, action: str) -> None:
