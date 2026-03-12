@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     name              VARCHAR(255) NOT NULL,
     email             VARCHAR(255) NOT NULL UNIQUE,
     plan_id           INT NOT NULL REFERENCES subscription_plans(plan_id),
-    status_id         INT NOT NULL REFERENCES account_statuses(status_id),
+    status_id         INT NOT NULL REFERENCES account_status(status_id),
     home_location_id  INT,
     created_at        TIMESTAMPTZ DEFAULT NOW(),
     updated_at        TIMESTAMPTZ DEFAULT NOW()
