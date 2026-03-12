@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS devices (
     device_id    SERIAL PRIMARY KEY,
     user_id      INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     name         VARCHAR(255),
+    device_type  VARCHAR(100),
     device_fingerprint VARCHAR(255) NOT NULL UNIQUE,
     is_trusted   BOOLEAN DEFAULT FALSE,
     last_seen_at_home TIMESTAMPTZ,
