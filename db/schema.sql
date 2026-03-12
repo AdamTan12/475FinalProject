@@ -8,14 +8,14 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
     max_streams INT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS account_statuses (
+CREATE TABLE IF NOT EXISTS account_status (
     status_id   SERIAL PRIMARY KEY,
     status_name VARCHAR(50) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS users (
     user_id           SERIAL PRIMARY KEY,
-    name              VARCHAR(255) NOT NULL UNIQUE,
+    name              VARCHAR(255) NOT NULL,
     email             VARCHAR(255) NOT NULL UNIQUE,
     plan_id           INT NOT NULL REFERENCES subscription_plans(plan_id),
     status_id         INT NOT NULL REFERENCES account_statuses(status_id),
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS payments (
     payment_id   SERIAL PRIMARY KEY,
     user_id      INT NOT NULL REFERENCES users(user_id),
     amount       DECIMAL(10, 2) NOT NULL,
-    status       VARCHAR(50) NOT NULL DEFAULT 'Pending',
+    status       VARCHAR(50) NOT NULL DEFAULT 'pending',
     payment_date TIMESTAMPTZ DEFAULT NOW(),
     created_at   TIMESTAMPTZ DEFAULT NOW()
 );
