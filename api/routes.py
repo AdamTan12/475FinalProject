@@ -59,17 +59,6 @@ def listLocations_route(email: str):
 
 # --- Streaming Session & Enforcement ---
 
-@app.post("/attemptStateSession")
-def attemptStateSession_route(
-    email: str,
-    device_fingerprint: str,
-    latitude: float,
-    longitude: float,
-):
-    granted = streaming.attemptStateSession(email, device_fingerprint, latitude, longitude)
-    return {"granted": granted}
-
-
 @app.post("/attemptStartSession")
 def attemptStartSession_route(
     email: str,

@@ -31,7 +31,7 @@ def _get_approved_location_id(cur, latitude: float, longitude: float):
     return row[0] if row else None
 
 
-def attemptStateSession(
+def attemptStartSession(
     email: str,
     device_fingerprint: str,
     latitude: float,
@@ -96,19 +96,6 @@ def attemptStateSession(
                 (user_id, device_id, location_id),
             )
             return True
-
-
-def attemptStartSession(
-    email: str,
-    device_fingerprint: str,
-    latitude: float,
-    longitude: float,
-) -> bool:
-    """
-    Validates and initiates a streaming session. Delegates to attemptStateSession.
-    Returns True if session granted, False otherwise.
-    """
-    return attemptStateSession(email, device_fingerprint, latitude, longitude)
 
 
 def trackUserLoginLogoutByEmail(email: str, action: str) -> None:
