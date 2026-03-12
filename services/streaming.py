@@ -33,7 +33,7 @@ def _get_approved_location_id(cur, latitude: float, longitude: float):
 
 def attemptStateSession(
     email: str,
-    device_token: str,
+    device_fingerprint: str,
     latitude: float,
     longitude: float,
 ) -> bool:
@@ -56,9 +56,9 @@ def attemptStateSession(
             cur.execute(
                 """
                 SELECT device_id, last_seen_at_home FROM devices
-                WHERE device_token = %s AND user_id = %s
+                WHERE device_fingerprint = %s AND user_id = %s
                 """,
-                (device_token, user_id),
+                (device_fingerprint, user_id),
             )
             dev_row = cur.fetchone()
             if not dev_row:
@@ -100,7 +100,7 @@ def attemptStateSession(
 
 def attemptStartSession(
     email: str,
-    device_token: str,
+    device_fingerprint: str,
     latitude: float,
     longitude: float,
 ) -> bool:
@@ -108,7 +108,7 @@ def attemptStartSession(
     Validates and initiates a streaming session. Delegates to attemptStateSession.
     Returns True if session granted, False otherwise.
     """
-    return attemptStateSession(email, device_token, latitude, longitude)
+    return attemptStateSession(email, device_fingerprint, latitude, longitude)
 
 
 def trackUserLoginLogoutByEmail(email: str, action: str) -> None:
