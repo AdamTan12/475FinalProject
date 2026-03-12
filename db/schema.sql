@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS account_status (
     status_name VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS user (
     user_id           SERIAL PRIMARY KEY,
     name              VARCHAR(255) NOT NULL,
     email             VARCHAR(255) NOT NULL UNIQUE,
@@ -29,13 +29,13 @@ CREATE TABLE IF NOT EXISTS location (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE users
+ALTER TABLE user
     ADD CONSTRAINT fk_home_location
     FOREIGN KEY (home_location_id) REFERENCES location(location_id);
 
 CREATE TABLE IF NOT EXISTS device (
     device_id    SERIAL PRIMARY KEY,
-    user_id      INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id      INT NOT NULL REFERENCES user(user_id) ON DELETE CASCADE,
     name         VARCHAR(255),
     device_fingerprint VARCHAR(255) NOT NULL UNIQUE,
     is_trusted   BOOLEAN DEFAULT FALSE,
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS device (
 
 CREATE TABLE IF NOT EXISTS payment (
     payment_id   SERIAL PRIMARY KEY,
-    user_id      INT NOT NULL REFERENCES users(user_id),
+    user_id      INT NOT NULL REFERENCES user(user_id),
     amount       DECIMAL(10, 2) NOT NULL,
     status       VARCHAR(50) NOT NULL DEFAULT 'pending',
     payment_date TIMESTAMPTZ DEFAULT NOW(),
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS payment (
 
 CREATE TABLE IF NOT EXISTS session (
     session_id   SERIAL PRIMARY KEY,
-    user_id      INT NOT NULL REFERENCES users(user_id),
+    user_id      INT NOT NULL REFERENCES user(user_id),
     device_id    INT NOT NULL REFERENCES device(device_id),
     location_id  INT NOT NULL REFERENCES location(location_id),
     start_time   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
