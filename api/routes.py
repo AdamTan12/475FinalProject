@@ -136,13 +136,6 @@ def attemptEndSession_route(email: str, deviceFingerprint: str):
     ok = streaming.attemptEndSession(email, deviceFingerprint)
     return {"ok": ok}
 
-
-@app.post("/trackUserLoginLogout")
-def trackUserLoginLogout_route(email: str, action: str):
-    streaming.trackUserLoginLogoutByEmail(email, action)
-    return {"ok": True}
-
-
 @app.post("/createModifyWatchTime")
 def createModifyWatchTime_route(session_id: int, duration_seconds: int):
     streaming.createModifyWatchTime(session_id, duration_seconds)

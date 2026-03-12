@@ -1,6 +1,6 @@
 """
 Streaming Session & Enforcement APIs.
-attemptStartSession, attemptEndSession, trackUserLoginLogoutByEmail,
+attemptStartSession, attemptEndSession,
 createModifyWatchTime, listWatchHistoryByEmail.
 """
 from db.connection import get_connection
@@ -135,12 +135,6 @@ def attemptEndSession(email: str, deviceFingerprint: str) -> bool:
                 (user_id, device_id),
             )
             return cur.rowcount >= 1
-
-
-def trackUserLoginLogoutByEmail(email: str, action: str) -> None:
-    """Records login/logout activity for the account identified by email. Stub: no login_logs table yet."""
-    pass
-
 
 def createModifyWatchTime(session_id: int, duration_seconds: int):
     """Update session set end_time based on duration (start_time + duration)."""
