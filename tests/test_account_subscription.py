@@ -37,7 +37,6 @@ def _setup_prerequisites():
 def _cleanup():
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM payment;")
             cur.execute("DELETE FROM session;")
             cur.execute("DELETE FROM device;")
             cur.execute('DELETE FROM "user";')
