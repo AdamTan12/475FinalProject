@@ -41,15 +41,6 @@ CREATE TABLE IF NOT EXISTS device (
     updated_at         TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS payment (
-    payment_id   SERIAL PRIMARY KEY,
-    user_id      INT NOT NULL REFERENCES "user"(user_id),
-    amount       DECIMAL(10, 2) NOT NULL,
-    status       VARCHAR(50) NOT NULL DEFAULT 'pending',
-    payment_date TIMESTAMPTZ DEFAULT NOW(),
-    created_at   TIMESTAMPTZ DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS session (
     session_id  SERIAL PRIMARY KEY,
     user_id     INT NOT NULL REFERENCES "user"(user_id),
@@ -60,7 +51,6 @@ CREATE TABLE IF NOT EXISTS session (
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_payments_status_date ON payment(status, payment_date);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_end    ON session(user_id, end_time);
 CREATE INDEX IF NOT EXISTS idx_devices_user         ON device(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_location    ON session(location_id);
