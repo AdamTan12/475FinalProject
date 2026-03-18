@@ -24,7 +24,7 @@ def _get_user_id_by_email(cur, email: str):
 def _get_approved_location_id(cur, latitude: float, longitude: float):
     """Return location_id if this lat/long is an approved location, else None."""
     cur.execute(
-        "SELECT location_id FROM location WHERE latitude = %s AND longitude = %s",
+        "SELECT location_id FROM location WHERE ROUND(latitude::numeric, 5) = ROUND(%s::numeric, 5) AND ROUND(longitude::numeric, 5) = ROUND(%s::numeric, 5)",
         (latitude, longitude),
     )
     row = cur.fetchone()

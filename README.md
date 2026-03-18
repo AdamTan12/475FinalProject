@@ -1,6 +1,6 @@
-# Video Stream Platform API
+# Video Stream Platform
 
-Backend API for a Netflix-style streaming platform (Python + PostgreSQL). Manages users, subscriptions, devices, locations, streaming sessions, and reporting.
+Backend for a Netflix-style streaming platform (Python + PostgreSQL). Manages users, subscriptions, devices, locations, streaming sessions, and reporting.
 
 **Team:** Powerpuff Boys — Joshua Lazarte, Chien Nguyen, Tom Strzyz, Adam Tan
 
@@ -37,19 +37,7 @@ pip install -r requirements.txt
 
 ### 4. Configure the database
 
-Copy the example env file and set your PostgreSQL URL:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and set `DATABASE_URL` to your database:
-
-```
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE_NAME
-```
-
-Example for a local database named `streaming_db`:
+Edit `.env` and set your PostgreSQL URL:
 
 ```
 DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/streaming_db
@@ -57,108 +45,148 @@ DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/streaming_db
 
 ### 5. Create the database schema
 
-Run the schema SQL against your database so tables exist:
-
-```bash
-psql "$DATABASE_URL" -f db/schema.sql
-```
-
-Or from `psql`:
+Run the schema SQL against your database:
 
 ```bash
 psql -U postgres -d streaming_db -f db/schema.sql
 ```
 
-### 6. (Optional) Seed sample data
+### 6. Seed sample data
 
-Populate the database with ~100 users, plans, locations, devices, payments, and sessions for testing:
+Populate the database with 4 plans, 100 users, ~254 devices, and ~1237 sessions:
 
 ```bash
 python seed_sample_data.py
 ```
 
-> **Note:** This clears all existing data before inserting. Re-running it resets the database to a clean sample state.
+> **Note:** This clears all existing data before inserting. Re-running resets the database to a clean sample state.
 
 ---
 
-## Running the project
+## Running the command-line driver
 
-Start the API server from the project root:
+The primary way to interact with the platform is through the command-line driver:
+
+```bash
+python driver.py
+```
+
+A numbered menu appears. Type a number and hit Enter to select an API. The driver prompts for any required input and prints the result.
+
+### Available APIs in the driver
+
+| # | API | Input Required |
+|---|-----|----------------|
+| 1 | `listSubscriptionPlans` | None |
+| 2 | `listUserAccounts` | None |
+| 3 | `listDevices` | email |
+| 4 | `listLocationsByEmail` | email |
+| 5 | `attemptStartSession` | email, device fingerprint, latitude, longitude |
+| 6 | `attemptEndSession` | email, device fingerprint |
+| 7 | `reportTotalActiveSessions` | None |
+| 8 | `reportSuspiciousActivity` | None |
+
+---
+
+## Demo test flows
+
+### Test data (after seeding)
+
+| Item | Value |
+|------|-------|
+| Basic plan user (max 1 stream, active) | `sampleuser7@example.com` |
+| Inactive user | `sampleuser5@example.com` |
+| sampleuser7 trusted device fingerprint | `seed-device-16` |
+| sampleuser7 other devices | `seed-device-17`, `seed-device-18` |
+| Valid location lat/lon | `25.5752500` / `-109.8733900` |
+| Invalid location (not in DB) | `99.9999` / `99.9999` |
+
+### Test 1 — Session granted
+```
+Select: 5
+email:       sampleuser7@example.com
+fingerprint: seed-device-16
+lat:         25.5752500
+lon:         -109.8733900
+```
+Expected: `GRANTED`
+
+### Test 2 — Prove session was counted
+```
+Select: 7
+```
+Expected: active session count increased
+
+### Test 3 — Stream limit enforced
+Run `attemptStartSession` again with the same user, different device:
+```
+Select: 5
+email:       sampleuser7@example.com
+fingerprint: seed-device-17
+lat:         25.5752500
+lon:         -109.8733900
+```
+Expected: `DENIED: Stream limit reached (1/1 active sessions)`
+
+### Test 4 — End the session
+```
+Select: 6
+email:       sampleuser7@example.com
+fingerprint: seed-device-16
+```
+Expected: `Session ended.`
+
+### Test 5 — Prove session ended
+```
+Select: 7
+```
+Expected: count went back down
+
+### Test 6 — Inactive account blocked
+```
+Select: 5
+email:       sampleuser5@example.com
+fingerprint: seed-device-1
+lat:         25.5752500
+lon:         -109.8733900
+```
+Expected: `DENIED: Account is not active.`
+
+### Test 7 — Unknown location blocked
+```
+Select: 5
+email:       sampleuser7@example.com
+fingerprint: seed-device-16
+lat:         99.9999
+lon:         99.9999
+```
+Expected: `DENIED: This location is not in the database.`
+
+### Test 8 — Suspicious activity report
+```
+Select: 8
+```
+Expected: list of users with more than 2 active sessions
+
+---
+
+## Running the HTTP server (optional)
 
 ```bash
 python main.py
 ```
 
-The server runs at **http://localhost:8000**.
-
-- **Interactive API docs:** http://localhost:8000/docs  
-- **ReDoc:** http://localhost:8000/redoc  
-
-To run with uvicorn directly:
-
-```bash
-uvicorn api.routes:app --reload --host 0.0.0.0 --port 8000
-```
+Server runs at **http://localhost:8000**.
+Interactive docs at **http://localhost:8000/docs**
 
 ---
 
-## Using the API
-
-All endpoints are under the base URL `http://localhost:8000`. Use query parameters for GET and form/JSON for POST as needed.
-
-### Account & Subscription
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/createUser?name=...&email=...&plan_id=1` | Create a user |
-| POST | `/modifyUser?name=...&email=...&plan_id=1` | Modify/Update a user |
-| GET | `/listUserAccounts` | List all users |
-| POST | `/createModifySubscriptionPlan?plan_id=...&name=...&price=...&max_streams=...` | Create (plan_id empty) or update a plan |
-| GET | `/listSubscriptionPlans` | List all subscription plans |
-
-### Device & Location
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/listDevices?user_id=1` | List devices for a user |
-| GET | `/listLocations?user_id=1` | List locations used by a user (from sessions) |
-| POST | `/validateDeviceMFA?device_id=1&location_id=1&user_home_location_id=1` | Check if device/location requires MFA |
-
-### Streaming
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/attemptStartSession?user_id=1&device_id=1&location_id=1` | Try to start a session (checks concurrency and 30-day rule) |
-| POST | `/createModifyWatchTime?session_id=1&duration_seconds=3600` | Set session end time by duration |
-| GET | `/listWatchHistory?user_id=1` | Watch history with locations and devices |
-
-### Reporting
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/reportTotalActiveSessions` | Count of active (open) sessions |
-| GET | `/reportSuspiciousActivity` | Users with active sessions in more than 2 locations |
-
-### Example requests (curl)
+## Running tests
 
 ```bash
-# List all users
-curl "http://localhost:8000/listUserAccounts"
-
-# List subscription plans
-curl "http://localhost:8000/listSubscriptionPlans"
-
-# Create a user (plan_id must exist)
-curl -X POST "http://localhost:8000/createUser?name=Jane&email=jane@example.com&plan_id=1"
-
-# Modify a user (plan_id must exist)
-curl -X POST "http://localhost:8000/name=Jane&email=jane@example.com&plan_id=1"
-
-# Try to start a streaming session
-curl -X POST "http://localhost:8000/attemptStartSession?user_id=1&device_id=1&location_id=1"
-
-# Total active sessions
-curl "http://localhost:8000/reportTotalActiveSessions"
+python -m pytest tests/ -v
+# or
+python tests/test_runner.py
 ```
 
 ---
@@ -169,45 +197,40 @@ curl "http://localhost:8000/reportTotalActiveSessions"
 475FinalProject/
 ├── README.md
 ├── requirements.txt
-├── .env.example
-├── main.py                 # Run the server
+├── main.py                 # FastAPI HTTP server (optional)
+├── driver.py               # Command-line driver (primary interface)
 ├── seed_sample_data.py     # Populate DB with sample data
 ├── config/
-│   └── settings.py         # DATABASE_URL from environment
+│   └── settings.py         # DATABASE_URL from .env
 ├── db/
-│   ├── connection.py      # get_connection() for PostgreSQL
-│   └── schema.sql         # Table definitions
-├── services/              # Business logic (API implementations)
+│   ├── connection.py       # get_connection() context manager
+│   └── schema.sql          # Table definitions
+├── services/               # Business logic
 │   ├── account_subscription.py
 │   ├── device_location.py
 │   ├── streaming.py
 │   └── reporting.py
-└── api/
-    └── routes.py          # FastAPI routes → services
+├── api/
+│   └── routes.py           # FastAPI routes → services
+└── tests/
+    ├── test_account_subscription.py
+    ├── test_device_location.py
+    ├── test_streaming_reporting.py
+    └── test_runner.py
 ```
 
 ---
 
-## Calling the API from Python
+## Schema
 
-You can also use the service layer directly (no HTTP), for example in tests or scripts:
+6 tables: `subscription_plan`, `account_status`, `location`, `user`, `device`, `session`
 
-```python
-from services.account_subscription import listUserAccounts
-
-users = listUserAccounts()
-```
-
-Run such code from the project root so that `config`, `db`, and `services` are on `PYTHONPATH`.
+See `db/schema.sql` for full definitions.
 
 ---
 
-## Notes & Limitations
+## Notes
 
-- **Device fingerprinting** — The `device_fingerprint` field is a caller-supplied string stored as-is. This project does not implement a real fingerprinting algorithm (e.g. hardware ID hashing, browser canvas fingerprinting). For local testing, pass any consistent unique string (e.g. `"my-macbook-001"`). In a production system, fingerprint generation would be handled by a native SDK on the device.
-
-- **Approved locations** — The `locations` table acts as a whitelist of approved streaming locations. Adding locations to this table (the approval workflow) is out of scope for this project.
-
-- **Login/logout tracking** — `trackUserLoginLogout` is stubbed; no `login_logs` table exists in the current schema.
-
-- **Payments** — The `payments` table exists in the schema for data completeness but payment processing APIs are out of scope.
+- **Device fingerprinting** — `device_fingerprint` is a caller-supplied string. For testing, seeded devices use the pattern `seed-device-<N>`. In production, fingerprint generation would be handled by a native SDK.
+- **Approved locations** — The `location` table acts as a whitelist. Locations must be added via `addLocation` before sessions can be started there.
+- **Stream enforcement** — `attemptStartSession` enforces: account must be active, device must be registered, location must exist in DB, active session count must not exceed plan's `max_streams`.

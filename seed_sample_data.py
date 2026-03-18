@@ -42,7 +42,6 @@ def main():
 
         # --- Clear existing data (FK-safe order) ---
         cur.execute('DELETE FROM session;')
-        cur.execute('DELETE FROM payment;')
         cur.execute('DELETE FROM device;')
         cur.execute('DELETE FROM "user";')
         cur.execute('DELETE FROM location;')
@@ -55,10 +54,10 @@ def main():
         cur.execute("ALTER SEQUENCE location_location_id_seq RESTART WITH 1;")
         cur.execute('ALTER SEQUENCE "user_user_id_seq" RESTART WITH 1;')
         cur.execute("ALTER SEQUENCE device_device_id_seq RESTART WITH 1;")
-        cur.execute("ALTER SEQUENCE payment_payment_id_seq RESTART WITH 1;")
         cur.execute("ALTER SEQUENCE session_session_id_seq RESTART WITH 1;")
 
         # --- Insert account_status ---
+
         for status_name in ACCOUNT_STATUSES:
             cur.execute(
                 "INSERT INTO account_status (status_name) VALUES (%s);",
@@ -123,25 +122,6 @@ def main():
         for dev_id, uid in device_user:
             user_device_ids.setdefault(uid, []).append(dev_id)
 
-        # --- Insert payments (~3-8 per user, spread over 6-12 months) ---
-        cur.execute('SELECT user_id, plan_id FROM "user";')
-        user_plans = {uid: pid for uid, pid in cur.fetchall()}
-        cur.execute("SELECT plan_id, price FROM subscription_plan;")
-        plan_prices = {pid: float(price) for pid, price in cur.fetchall()}
-        num_payments = 0
-        base_date = datetime.utcnow() - timedelta(days=365)
-        for user_id in range(1, num_users + 1):
-            price = plan_prices[user_plans[user_id]]
-            n_payments = random.randint(3, 8)
-            for _ in range(n_payments):
-                pay_date = base_date + timedelta(days=random.randint(0, 365))
-                status = "Success" if random.random() > 0.15 else "Pending"
-                cur.execute(
-                    "INSERT INTO payment (user_id, amount, status, payment_date) VALUES (%s, %s, %s, %s);",
-                    (user_id, price, status, pay_date),
-                )
-                num_payments += 1
-
         # --- Insert sessions (~5-20 per user, some active) ---
         num_sessions = 0
         session_base = datetime.utcnow() - timedelta(days=180)
@@ -167,8 +147,8 @@ def main():
                 num_sessions += 1
 
     print(
-        "Inserted %d plans, %d locations, %d users, %d devices, %d payments, %d sessions."
-        % (num_plans, num_locations, num_users, num_devices, num_payments, num_sessions)
+        "Inserted %d plans, %d locations, %d users, %d devices, %d sessions."
+        % (num_plans, num_locations, num_users, num_devices, num_sessions)
     )
     print("Done.")
 
