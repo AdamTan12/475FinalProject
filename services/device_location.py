@@ -11,6 +11,7 @@ def addDeviceToAccount(
     deviceName: str,
     deviceType: str,
     deviceFingerprint: str,
+    is_trusted: bool
 ) -> int:
     """Add a device for the user identified by email. Returns the new device_id."""
     with get_connection() as conn:
@@ -22,18 +23,18 @@ def addDeviceToAccount(
             user_id = row[0]
             cur.execute(
                 """
-                INSERT INTO device (user_id, name, device_type, device_fingerprint)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO device (user_id, name, device_type, device_fingerprint, is_trusted)
+                VALUES (%s, %s, %s, %s, %s)
                 RETURNING device_id
                 """,
-                (user_id, deviceName, deviceType, deviceFingerprint),
+                (user_id, deviceName, deviceType, deviceFingerprint, is_trusted),
             )
             return cur.fetchone()[0]
 
 
-def addDeviceByEmail(email: str, name: str, device_fingerprint: str) -> None:
+def addDeviceByEmail(email: str, name: str, device_fingerprint: str, is_trusted: bool = False) -> None:
     """Add a device for the user identified by email, storing the provided fingerprint."""
-    addDeviceToAccount(email, name, None, device_fingerprint)
+    addDeviceToAccount(email, name, None, device_fingerprint, is_trusted)
 
 
 def addLocation(latitude: float, longitude: float) -> int:

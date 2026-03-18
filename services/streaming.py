@@ -54,7 +54,7 @@ def attemptStartSession(
 
             cur.execute(
                 """
-                SELECT device_id, last_seen_at_home FROM device
+                SELECT device_id, last_seen_at_home, is_trusted FROM device
                 WHERE device_fingerprint = %s AND user_id = %s
                 """,
                 (device_fingerprint, user_id),
@@ -65,7 +65,7 @@ def attemptStartSession(
                     False,
                     "Device not registered to this account. Add the device first via addDeviceToAccount.",
                 )
-            device_id, last_seen_at_home = dev_row[0], dev_row[1]
+            device_id, last_seen_at_home, is_trusted = dev_row[0], dev_row[1], dev_row[2]
 
             location_id = _get_approved_location_id(cur, latitude, longitude)
             if location_id is None:
@@ -82,7 +82,7 @@ def attemptStartSession(
             if active_count >= max_streams:
                 return (False, f"Stream limit reached ({active_count}/{max_streams} active sessions).")
 
-            if home_location_id is not None and location_id != home_location_id:
+            if not is_trusted and home_location_id is not None and location_id != home_location_id:
                 if last_seen_at_home:
                     cur.execute(
                         """
