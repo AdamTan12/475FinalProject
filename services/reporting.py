@@ -15,20 +15,21 @@ def reportTotalActiveSessions() -> int:
 
 
 def reportSuspiciousActivity():
-    """Return list of emails for accounts with more than 2 active sessions."""
+    """Return list of emails for accounts with active sessions exceeding their plan's max_streams."""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT u.email
                 FROM "user" u
+                JOIN subscription_plan p ON u.plan_id = p.plan_id
                 JOIN (
-                    SELECT user_id
+                    SELECT user_id, COUNT(*) AS active_count
                     FROM session
                     WHERE end_time IS NULL
                     GROUP BY user_id
-                    HAVING COUNT(*) > 2
                 ) active ON active.user_id = u.user_id
+                WHERE active.active_count > p.max_streams
                 """
             )
             return [row[0] for row in cur.fetchall()]

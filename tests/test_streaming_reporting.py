@@ -132,7 +132,7 @@ class TestReportSuspiciousActivity(unittest.TestCase):
         self.assertEqual(emails, [])
 
     def test_report_suspicious_activity_returns_emails_with_more_than_two_active_sessions(self):
-        email, loc_id, dev_fp = _setup_user_and_device(max_streams=5)
+        email, loc_id, dev_fp = _setup_user_and_device(max_streams=2)
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute('SELECT user_id FROM "user" WHERE email = %s', (email,))
