@@ -84,7 +84,7 @@ A numbered menu appears. Type a number and hit Enter to select an API. The drive
 | 5 | `attemptStartSession` | email, device fingerprint, latitude, longitude |
 | 6 | `attemptEndSession` | email, device fingerprint |
 | 7 | `reportTotalActiveSessions` | None |
-| 8 | `reportSuspiciousActivity` | None |
+| 8 | `reportSuspiciousActivity` | None — flags users exceeding their plan's max_streams |
 
 ---
 
@@ -234,3 +234,4 @@ See `db/schema.sql` for full definitions.
 - **Device fingerprinting** — `device_fingerprint` is a caller-supplied string. For testing, seeded devices use the pattern `seed-device-<N>`. In production, fingerprint generation would be handled by a native SDK.
 - **Approved locations** — The `location` table acts as a whitelist. Locations must be added via `addLocation` before sessions can be started there.
 - **Stream enforcement** — `attemptStartSession` enforces: account must be active, device must be registered, location must exist in DB, active session count must not exceed plan's `max_streams`.
+- **Suspicious activity** — `reportSuspiciousActivity` flags users whose active session count exceeds their plan's `max_streams`. A Basic user (max 1) with 2 active sessions is flagged; a Family user (max 6) with 3 is not.
