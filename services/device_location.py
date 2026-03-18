@@ -11,7 +11,7 @@ def addDeviceToAccount(
     deviceName: str,
     deviceType: str,
     deviceFingerprint: str,
-    is_trusted: bool
+    is_trusted: bool = False
 ) -> int:
     """Add a device for the user identified by email. Returns the new device_id."""
     with get_connection() as conn:
